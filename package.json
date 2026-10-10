@@ -1,0 +1,16 @@
+{
+  "name": "@pragmatic-tech-ai/todl-identity-cloud",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "tsx --test \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@pragmatic-tech-ai/todl-identity": "file:../todl-identity",
+    "jose": "^6.0.0"
+  },
+  "devDependencies": { "@types/node": "^22.20.1", "tsx": "^4.0.0", "typescript": "^5.5.0" }
+}
