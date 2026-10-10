@@ -18,18 +18,18 @@ class Golden
     {
         test(Golden.HdPresentName, async () =>
         {
-            const flow = await GoogleFixture.GoogleFlow({ sub: "u1", email: "a@x.io", [Golden.HostedDomainClaim]: Golden.Domain });
+            const flow = await GoogleFixture.GoogleFlow({ sub: GoogleFixture.SubHd, email: GoogleFixture.EmailA, [Golden.HostedDomainClaim]: Golden.Domain });
             const result = await Golden.Authenticate(flow);
             assert.ok(result instanceof AuthenticatedResult);
             const principal = (result as AuthenticatedResult).Principal;
-            assert.equal(principal.Id, "u1");
-            assert.equal(principal.Claim(Golden.EmailClaim), "a@x.io");
+            assert.equal(principal.Id, GoogleFixture.SubHd);
+            assert.equal(principal.Claim(Golden.EmailClaim), GoogleFixture.EmailA);
             assert.deepEqual([...principal.Groups], [Golden.Domain]);
         });
 
         test(Golden.HdAbsentName, async () =>
         {
-            const flow = await GoogleFixture.GoogleFlow({ sub: "u2", email: "b@x.io" });
+            const flow = await GoogleFixture.GoogleFlow({ sub: GoogleFixture.SubNoHd, email: GoogleFixture.EmailB });
             const result = await Golden.Authenticate(flow);
             assert.ok(result instanceof AuthenticatedResult);
             assert.deepEqual([...(result as AuthenticatedResult).Principal.Groups], []);
@@ -37,14 +37,14 @@ class Golden
 
         test(Golden.WrongIssuerName, async () =>
         {
-            const flow = await GoogleFixture.GoogleFlow({ sub: "u3", email: "c@x.io" }, { issuer: Golden.EvilIssuer });
+            const flow = await GoogleFixture.GoogleFlow({ sub: GoogleFixture.SubEvil, email: GoogleFixture.EmailC }, { issuer: Golden.EvilIssuer });
             const result = await Golden.Authenticate(flow);
             assert.ok(result instanceof RejectedResult);
         });
 
         test(Golden.NoSecretName, async () =>
         {
-            const flow = await GoogleFixture.GoogleFlow({ sub: "u1", email: "a@x.io", [Golden.HostedDomainClaim]: Golden.Domain });
+            const flow = await GoogleFixture.GoogleFlow({ sub: GoogleFixture.SubHd, email: GoogleFixture.EmailA, [Golden.HostedDomainClaim]: Golden.Domain });
             await Golden.Authenticate(flow);
             assert.ok(flow.audit.Events.some((e) => e.Kind === AuditEventKind.Authentication));
             for (const event of flow.audit.Events)

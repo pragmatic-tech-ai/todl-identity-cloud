@@ -17,6 +17,12 @@ export class GoogleFixture
     public static readonly TenantName = "Acme";
     public static readonly AuthCode = "auth-code";
     public static readonly BearerType = "Bearer";
+    public static readonly SubHd = "u1";
+    public static readonly EmailA = "a@x.io";
+    public static readonly SubNoHd = "u2";
+    public static readonly EmailB = "b@x.io";
+    public static readonly SubEvil = "u3";
+    public static readonly EmailC = "c@x.io";
 
     public static Settings(): Map<string, string>
     {
