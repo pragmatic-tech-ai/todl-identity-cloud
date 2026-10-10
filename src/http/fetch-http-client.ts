@@ -7,13 +7,14 @@ export class FetchHttpClient implements IHttpClient
     private static readonly NonHttpsMessage = "Only https URLs are permitted";
     private static readonly RequestFailedMessage = "HTTP request failed";
     private static readonly PostMethod = "POST";
+    private static readonly RedirectMode = "error";
     private static readonly ContentTypeHeader = "content-type";
     private static readonly FormContentType = "application/x-www-form-urlencoded";
 
     public async GetJson(url: string): Promise<unknown>
     {
         this.RequireHttps(url);
-        const res = await fetch(url, { signal: AbortSignal.timeout(FetchHttpClient.TimeoutMs) });
+        const res = await fetch(url, { redirect: FetchHttpClient.RedirectMode, signal: AbortSignal.timeout(FetchHttpClient.TimeoutMs) });
         return this.ReadJson(res);
     }
 
@@ -23,6 +24,7 @@ export class FetchHttpClient implements IHttpClient
         const res = await fetch(url,
         {
             method: FetchHttpClient.PostMethod,
+            redirect: FetchHttpClient.RedirectMode,
             headers: { [FetchHttpClient.ContentTypeHeader]: FetchHttpClient.FormContentType },
             body: new URLSearchParams([...fields]).toString(),
             signal: AbortSignal.timeout(FetchHttpClient.TimeoutMs),
