@@ -25,3 +25,6 @@ export { ClaimsAccessPolicy } from "./pack/claims-access-policy.js";
 export { DepthAwareOidcAuthenticator } from "./pack/depth-aware-oidc-authenticator.js";
 export { OidcIdentityProviderPackBase } from "./pack/oidc-identity-provider-pack-base.js";
 export type { OidcPackOptions } from "./pack/oidc-identity-provider-pack-base.js";
+export { MicrosoftEntraProfile } from "./packs/microsoft-entra-profile.js";
+export { MicrosoftEntraPack } from "./packs/microsoft-entra-pack.js";
+export type { MicrosoftEntraPackOptions } from "./packs/microsoft-entra-pack.js";
