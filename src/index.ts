@@ -15,3 +15,6 @@ export type { GroupStrategy } from "./claims/group-strategy.js";
 export { ClaimArrayGroupStrategy, HostedDomainGroupStrategy } from "./claims/group-strategy.js";
 export { ClaimsMapper } from "./claims/claims-mapper.js";
 export { GroupRoleMapper } from "./claims/group-role-mapper.js";
+export { OidcResolvedConfig } from "./oidc/oidc-resolved-config.js";
+export { OidcAuthenticator } from "./oidc/oidc-authenticator.js";
+export type { OidcAuthenticatorOptions } from "./oidc/oidc-authenticator.js";
