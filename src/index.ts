@@ -11,3 +11,7 @@ export type { IOidcFlowStateStore } from "./oidc/flow-state-store.js";
 export { InMemoryOidcFlowStateStore } from "./oidc/flow-state-store.js";
 export { AuthorizationRequest } from "./oidc/authorization-request.js";
 export type { AuthorizationRequestOptions } from "./oidc/authorization-request.js";
+export type { GroupStrategy } from "./claims/group-strategy.js";
+export { ClaimArrayGroupStrategy, HostedDomainGroupStrategy } from "./claims/group-strategy.js";
+export { ClaimsMapper } from "./claims/claims-mapper.js";
+export { GroupRoleMapper } from "./claims/group-role-mapper.js";
