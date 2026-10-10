@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { AuthMethod, Credential, DelegationDepth, IdentityConfig, PresentedSecret, RejectedResult, Tenant, TenantKind } from "@pragmatic-tech-ai/todl-identity";
+import type { AuthenticationResult } from "@pragmatic-tech-ai/todl-identity";
+import { AuthMethod, AuthenticatedResult, Credential, DelegationDepth, IdentityConfig, PresentedSecret, RejectedResult, Tenant, TenantKind } from "@pragmatic-tech-ai/todl-identity";
 import { FakeAuditSink, FakeRoleGrantStore, FakeSessionManager } from "@pragmatic-tech-ai/todl-identity/testing";
 import { MicrosoftEntraPack } from "../microsoft-entra-pack.js";
 import { GoogleIdentityPack } from "../google-identity-pack.js";
@@ -11,9 +12,9 @@ import { MapSecretStore } from "./entra-fixture.js";
 
 class Fixture
 {
-    public static readonly EntraIssuer = "https://login.microsoftonline.com/test-tid/v2.0";
-    public static readonly GoogleIssuer = "https://accounts.google.com";
+        public static readonly GoogleIssuer = "https://accounts.google.com";
     public static readonly TenantIdValue = "test-tid";
+    public static readonly EntraIssuer = `https://login.microsoftonline.com/${Fixture.TenantIdValue}/v2.0`;
     public static readonly ClientId = "client-1";
     public static readonly RedirectUri = "https://app.test/cb";
     public static readonly EntraPackId = "entra";
@@ -23,6 +24,7 @@ class Fixture
     public static readonly TenantRef = "t1";
     public static readonly TenantName = "Acme";
     public static readonly EntraTokenName = "cross-provider: Entra-minted token is rejected by the Google pack";
+    public static readonly PositiveControlName = "cross-provider control: a token from the pack own IdP authenticates";
     public static readonly GoogleTokenName = "cross-provider: Google-minted token is rejected by the Entra pack";
 
     public constructor(
@@ -82,7 +84,7 @@ class Fixture
         pack: MicrosoftEntraPack | GoogleIdentityPack,
         flowStates: InMemoryOidcFlowStateStore,
         http: FakeOidcHttpClient,
-        foreignIdp: FakeOidcIdp)
+        foreignIdp: FakeOidcIdp): Promise<AuthenticationResult>
     {
         const { State } = await pack.BeginAuthorization(this.TenantValue);
         const nonce = flowStates.Peek(State)!.Nonce;
@@ -98,6 +100,17 @@ class CrossProviderTests
 {
     public static Register(): void
     {
+        test(Fixture.PositiveControlName, async () =>
+        {
+            const fx = await Fixture.Create();
+            const google = await fx.Attempt(fx.GooglePack, fx.FlowStatesB, fx.HttpB, fx.IdpB);
+            assert.ok(google instanceof AuthenticatedResult);
+            assert.equal((google as AuthenticatedResult).Principal.Id, Fixture.Subject);
+            const entra = await fx.Attempt(fx.EntraPack, fx.FlowStatesA, fx.HttpA, fx.IdpA);
+            assert.ok(entra instanceof AuthenticatedResult);
+            assert.equal((entra as AuthenticatedResult).Principal.Id, Fixture.Subject);
+        });
+
         test(Fixture.EntraTokenName, async () =>
         {
             const fx = await Fixture.Create();
