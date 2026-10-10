@@ -1,4 +1,4 @@
-import { AuditEvent, AuditEventKind, AuthMethod, AuthenticatedResult, DelegationDepth } from "@pragmatic-tech-ai/todl-identity";
+import { AuditEvent, AuditEventKind, AuthMethod, AuthenticatedResult, DelegationDepth, Principal } from "@pragmatic-tech-ai/todl-identity";
 import type {
     AuthenticationResult,
     Credential,
@@ -39,17 +39,28 @@ export class DepthAwareOidcAuthenticator implements IAuthenticator
         const result = await this.inner.Authenticate(credential, presented, tenant);
         if (result instanceof AuthenticatedResult)
         {
-            this.directory.Remember(result.Principal);
+            const principal = this.AdjustForDepth(result.Principal);
+            this.directory.Remember(principal);
             if (this.config.DelegationDepth === DelegationDepth.ExternalGrants)
             {
-                await this.groupRoleMapper.ApplyGroups(result.Principal, tenant, this.config.GroupRoleMap);
+                await this.groupRoleMapper.ApplyGroups(principal, tenant, this.config.GroupRoleMap);
             }
-            await this.recordAuth(tenant, result.Principal.Id);
+            await this.RecordAuth(tenant, principal.Id);
+            return new AuthenticatedResult(principal);
         }
         return result;
     }
 
-    private async recordAuth(tenant: Tenant, principalId: string): Promise<void>
+    private AdjustForDepth(principal: Principal): Principal
+    {
+        if (this.config.DelegationDepth === DelegationDepth.AuthnDirectory)
+        {
+            return new Principal(principal.Id, principal.TenantId, principal.Kind, principal.Claims, []);
+        }
+        return principal;
+    }
+
+    private async RecordAuth(tenant: Tenant, principalId: string): Promise<void>
     {
         const detail = new Map([[DepthAwareOidcAuthenticator.MethodDetailKey, DepthAwareOidcAuthenticator.OidcMethodValue]]);
         await this.audit.Record(new AuditEvent(AuditEventKind.Authentication, tenant.Id, principalId, this.now(), detail));

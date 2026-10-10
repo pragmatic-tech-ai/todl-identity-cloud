@@ -21,14 +21,7 @@ export class FetchHttpClient implements IHttpClient
     public async PostForm(url: string, fields: ReadonlyMap<string, string>): Promise<unknown>
     {
         this.RequireHttps(url);
-        const res = await fetch(url,
-        {
-            method: FetchHttpClient.PostMethod,
-            redirect: FetchHttpClient.RedirectMode,
-            headers: { [FetchHttpClient.ContentTypeHeader]: FetchHttpClient.FormContentType },
-            body: new URLSearchParams([...fields]).toString(),
-            signal: AbortSignal.timeout(FetchHttpClient.TimeoutMs),
-        });
+        const res = await fetch(url, { method: FetchHttpClient.PostMethod, redirect: FetchHttpClient.RedirectMode, headers: { [FetchHttpClient.ContentTypeHeader]: FetchHttpClient.FormContentType }, body: new URLSearchParams([...fields]).toString(), signal: AbortSignal.timeout(FetchHttpClient.TimeoutMs) });
         return this.ReadJson(res);
     }
 

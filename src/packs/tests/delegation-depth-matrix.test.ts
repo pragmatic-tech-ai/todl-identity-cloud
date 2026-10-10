@@ -33,7 +33,8 @@ class Matrix
         test(Matrix.AuthnName, async () =>
         {
             const flow = await EntraFixture.EntraFlow(DelegationDepth.AuthnDirectory);
-            await Matrix.Authenticate(flow);
+            const principal = await Matrix.Authenticate(flow);
+            assert.deepEqual([...principal.Groups], []);
             assert.equal((await flow.pack.Grants.GrantsFor(EntraFixture.Subject, flow.tenant)).length, 0);
             assert.equal(flow.pack.Policy, undefined);
         });
@@ -41,7 +42,8 @@ class Matrix
         test(Matrix.ExternalName, async () =>
         {
             const flow = await EntraFixture.EntraFlow(DelegationDepth.ExternalGrants, new Map([[EntraFixture.Group, Role.Editor]]));
-            await Matrix.Authenticate(flow);
+            const principal = await Matrix.Authenticate(flow);
+            assert.deepEqual([...principal.Groups], [EntraFixture.Group]);
             const grants = await flow.pack.Grants.GrantsFor(EntraFixture.Subject, flow.tenant);
             assert.ok(grants.some((g) => g.Role === Role.Editor));
             assert.equal(flow.pack.Policy, undefined);
@@ -61,13 +63,14 @@ class Matrix
         });
     }
 
-    private static async Authenticate(flow: Flow): Promise<void>
+    private static async Authenticate(flow: Flow): Promise<Principal>
     {
         const result = await flow.pack.AuthenticatorFor(AuthMethod.Oidc)!.Authenticate(
             new Credential(AuthMethod.Oidc, flow.State),
             new PresentedSecret(EntraFixture.AuthCode),
             flow.tenant);
         assert.ok(result instanceof AuthenticatedResult);
+        return (result as AuthenticatedResult).Principal;
     }
 
     private static Context(tenant: Tenant, groups: string[], policy: IAccessPolicy): AccessContext

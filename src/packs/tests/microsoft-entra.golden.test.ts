@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { AuthMethod, AuthenticatedResult, AuditEventKind, Credential, PresentedSecret } from "@pragmatic-tech-ai/todl-identity";
+import { AuthMethod, AuthenticatedResult, AuditEventKind, Credential, DelegationDepth, PresentedSecret } from "@pragmatic-tech-ai/todl-identity";
 import { EntraFixture } from "./entra-fixture.js";
 
 class Golden
@@ -12,7 +12,7 @@ class Golden
     {
         test(Golden.TestName, async () =>
         {
-            const { pack, tenant, State, audit, idToken } = await EntraFixture.EntraFlow();
+            const { pack, tenant, State, audit, idToken } = await EntraFixture.EntraFlow(DelegationDepth.ExternalGrants);
             const result = await pack.AuthenticatorFor(AuthMethod.Oidc)!.Authenticate(
                 new Credential(AuthMethod.Oidc, State),
                 new PresentedSecret(EntraFixture.AuthCode),

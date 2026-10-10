@@ -84,14 +84,14 @@ export class OidcAuthenticator implements IAuthenticator
 
     public async Authenticate(credential: Credential, presented: PresentedSecret, tenant: Tenant): Promise<AuthenticationResult>
     {
-        const flow = await this.opts.FlowStates.Take(credential.Reference);
-        if (flow === null)
-        {
-            return this.Reject();
-        }
-
         try
         {
+            const flow = await this.opts.FlowStates.Take(credential.Reference);
+            if (flow === null)
+            {
+                return this.Reject();
+            }
+
             const resolved = this.opts.Resolved;
             const endpoints = await this.opts.Discovery.Endpoints(resolved.DiscoveryUrl);
 
