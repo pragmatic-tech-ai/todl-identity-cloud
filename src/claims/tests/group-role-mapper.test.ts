@@ -4,14 +4,17 @@ import { Principal, PrincipalKind, ResourceKind, Role, Tenant, TenantKind } from
 import { FakeRoleGrantStore } from "@pragmatic-tech-ai/todl-identity/testing";
 import { GroupRoleMapper } from "../group-role-mapper.js";
 
-const tenant = new Tenant("t1", TenantKind.Saas, "Acme");
+class Fixture
+{
+    public static readonly Tenant = new Tenant("t1", TenantKind.Saas, "Acme");
+}
 
 test("maps a group to a tenant-scoped grant", async () =>
 {
     const store = new FakeRoleGrantStore();
     const principal = new Principal("u1", "t1", PrincipalKind.User, new Map(), ["admins"]);
-    await new GroupRoleMapper(store).ApplyGroups(principal, tenant, new Map([["admins", Role.Admin]]));
-    const grants = await store.GrantsFor("u1", tenant);
+    await new GroupRoleMapper(store).ApplyGroups(principal, Fixture.Tenant, new Map([["admins", Role.Admin]]));
+    const grants = await store.GrantsFor("u1", Fixture.Tenant);
     assert.equal(grants.length, 1);
     assert.equal(grants[0].Role, Role.Admin);
     assert.equal(grants[0].Resource.Kind, ResourceKind.Tenant);
@@ -22,6 +25,6 @@ test("unmapped group saves nothing", async () =>
 {
     const store = new FakeRoleGrantStore();
     const principal = new Principal("u1", "t1", PrincipalKind.User, new Map(), ["other"]);
-    await new GroupRoleMapper(store).ApplyGroups(principal, tenant, new Map([["admins", Role.Admin]]));
-    assert.equal((await store.GrantsFor("u1", tenant)).length, 0);
+    await new GroupRoleMapper(store).ApplyGroups(principal, Fixture.Tenant, new Map([["admins", Role.Admin]]));
+    assert.equal((await store.GrantsFor("u1", Fixture.Tenant)).length, 0);
 });

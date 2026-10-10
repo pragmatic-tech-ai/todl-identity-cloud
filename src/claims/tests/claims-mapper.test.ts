@@ -46,3 +46,16 @@ test("missing or empty sub throws", () =>
     assert.throws(() => Fixture.Mapper().Map({ email: "a@x.io" }, Fixture.Tenant, config));
     assert.throws(() => Fixture.Mapper().Map({ sub: "" }, Fixture.Tenant, config));
 });
+
+test("structured and null claim values are skipped, scalars coerced", () =>
+{
+    const mapper = new ClaimsMapper(
+        new Map([["email", "email"], ["role", "role"], ["age", "age"], ["admin", "admin"], ["nick", "nick"]]),
+        new ClaimArrayGroupStrategy("groups"));
+    const p = mapper.Map({ sub: "u1", email: { a: 1 }, role: ["x"], age: 42, admin: true, nick: null }, Fixture.Tenant, Fixture.Config(new Map()));
+    assert.equal(p.Claim("email"), undefined);
+    assert.equal(p.Claim("role"), undefined);
+    assert.equal(p.Claim("nick"), undefined);
+    assert.equal(p.Claim("age"), "42");
+    assert.equal(p.Claim("admin"), "true");
+});
