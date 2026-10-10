@@ -12,7 +12,7 @@ import { MapSecretStore } from "./entra-fixture.js";
 
 class Fixture
 {
-        public static readonly GoogleIssuer = "https://accounts.google.com";
+    public static readonly GoogleIssuer = "https://accounts.google.com";
     public static readonly TenantIdValue = "test-tid";
     public static readonly EntraIssuer = `https://login.microsoftonline.com/${Fixture.TenantIdValue}/v2.0`;
     public static readonly ClientId = "client-1";
