@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import type { AuthenticationResult } from "@pragmatic-tech-ai/todl-identity";
 import { AuthMethod, AuthenticatedResult, Credential, DelegationDepth, IdentityConfig, PresentedSecret, RejectedResult, Tenant, TenantKind } from "@pragmatic-tech-ai/todl-identity";
 import { FakeAuditSink, FakeRoleGrantStore, FakeSessionManager } from "@pragmatic-tech-ai/todl-identity/testing";
+import { MicrosoftEntraProfile } from "../microsoft-entra-profile.js";
+import { GoogleIdentityProfile } from "../google-identity-profile.js";
 import { MicrosoftEntraPack } from "../microsoft-entra-pack.js";
 import { GoogleIdentityPack } from "../google-identity-pack.js";
 import { OidcSettingKeys } from "../../pack/oidc-setting-keys.js";
@@ -12,9 +14,9 @@ import { MapSecretStore } from "./entra-fixture.js";
 
 class Fixture
 {
-    public static readonly GoogleIssuer = "https://accounts.google.com";
+    public static readonly GoogleIssuer = GoogleIdentityProfile.GoogleIssuer;
     public static readonly TenantIdValue = "test-tid";
-    public static readonly EntraIssuer = `https://login.microsoftonline.com/${Fixture.TenantIdValue}/v2.0`;
+    public static readonly EntraIssuer = new MicrosoftEntraProfile().ResolveIssuer(new Map([[OidcSettingKeys.AadTenantId, Fixture.TenantIdValue]]));
     public static readonly ClientId = "client-1";
     public static readonly RedirectUri = "https://app.test/cb";
     public static readonly EntraPackId = "entra";
