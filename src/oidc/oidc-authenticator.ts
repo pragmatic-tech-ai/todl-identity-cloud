@@ -48,7 +48,7 @@ export class OidcAuthenticator implements IAuthenticator
     private static readonly ClientIdParam = "client_id";
     private static readonly IdTokenField = "id_token";
     private static readonly NonceClaim = "nonce";
-    private static readonly AllowedAlgs: string[] = ["RS256", "ES256"];
+    private static readonly AllowedAlgs = ["RS256", "ES256"] as const;
     private static readonly ClockToleranceSec = 60;
     private static readonly NoMatchingKeyCode = "ERR_JWKS_NO_MATCHING_KEY";
 
@@ -120,7 +120,7 @@ export class OidcAuthenticator implements IAuthenticator
             const verifyOptions = {
                 issuer: resolved.Issuer,
                 audience: resolved.ClientId,
-                algorithms: OidcAuthenticator.AllowedAlgs,
+                algorithms: [...OidcAuthenticator.AllowedAlgs],
                 clockTolerance: OidcAuthenticator.ClockToleranceSec,
             };
             let payload: JWTPayload;
