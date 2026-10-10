@@ -31,3 +31,5 @@ export type { MicrosoftEntraPackOptions } from "./packs/microsoft-entra-pack.js"
 export { GoogleIdentityProfile } from "./packs/google-identity-profile.js";
 export { GoogleIdentityPack } from "./packs/google-identity-pack.js";
 export type { GoogleIdentityPackOptions } from "./packs/google-identity-pack.js";
+export { GenericOidcProfile } from "./packs/generic-oidc-profile.js";
+export { GenericOidcPack } from "./packs/generic-oidc-pack.js";
