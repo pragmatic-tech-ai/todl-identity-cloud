@@ -12,6 +12,7 @@ import type { ISecretStore } from "@pragmatic-tech-ai/todl-identity";
 import { FakeAuditSink, FakeRoleGrantStore, FakeSessionManager } from "@pragmatic-tech-ai/todl-identity/testing";
 import { OidcIdentityProviderPackBase } from "../oidc-identity-provider-pack-base.js";
 import { OidcProviderProfile } from "../oidc-provider-profile.js";
+import { OidcSettingKeys } from "../oidc-setting-keys.js";
 import { ClaimsAccessPolicy } from "../claims-access-policy.js";
 import { ClaimArrayGroupStrategy } from "../../claims/group-strategy.js";
 import { InMemoryOidcFlowStateStore } from "../../oidc/flow-state-store.js";
@@ -61,10 +62,10 @@ class Fixture
     public MakePack(depth: DelegationDepth, settings?: Map<string, string>): TestOidcPack
     {
         const providerSettings = settings ?? new Map([
-            ["clientId", "c1"],
-            ["redirectUri", "https://app/cb"],
-            ["issuer", this.idp.Issuer],
-            ["discoveryUrl", this.idp.DiscoveryUrl],
+            [OidcSettingKeys.ClientId, "c1"],
+            [OidcSettingKeys.RedirectUri, "https://app/cb"],
+            [OidcSettingKeys.Issuer, this.idp.Issuer],
+            [OidcSettingKeys.DiscoveryUrl, this.idp.DiscoveryUrl],
         ]);
         return new TestOidcPack({
             Profile: this.profile,
@@ -109,6 +110,6 @@ describe("OidcIdentityProviderPackBase depths", () =>
     test("a missing required setting throws", async () =>
     {
         const f = await Fixture.Create();
-        assert.throws(() => f.MakePack(DelegationDepth.AuthnDirectory, new Map([["issuer", "https://x"], ["discoveryUrl", "https://x/d"]])));
+        assert.throws(() => f.MakePack(DelegationDepth.AuthnDirectory, new Map([[OidcSettingKeys.Issuer, "https://x"], [OidcSettingKeys.DiscoveryUrl, "https://x/d"]])));
     });
 });
