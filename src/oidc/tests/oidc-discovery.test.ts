@@ -26,12 +26,15 @@ class SpyHttpClient implements IHttpClient
 
 class StubHttpClient implements IHttpClient
 {
+    public GetCount = 0;
+
     public constructor(private readonly doc: unknown)
     {
     }
 
     public async GetJson(): Promise<unknown>
     {
+        this.GetCount++;
         return this.doc;
     }
 
@@ -83,4 +86,24 @@ test("Endpoints rejects a non-https endpoint", async () =>
     };
     const discovery = new OidcDiscovery(new StubHttpClient(doc));
     await assert.rejects(discovery.Endpoints("https://x/.well-known/openid-configuration"));
+});
+
+test("Endpoints rejects a non-https issuer", async () =>
+{
+    const doc = {
+        issuer: "http://x",
+        authorization_endpoint: "https://x/auth",
+        token_endpoint: "https://x/token",
+        jwks_uri: "https://x/jwks"
+    };
+    const discovery = new OidcDiscovery(new StubHttpClient(doc));
+    await assert.rejects(discovery.Endpoints("https://x/.well-known/openid-configuration"));
+});
+
+test("Endpoints rejects a non-https discoveryUrl without fetching", async () =>
+{
+    const stub = new StubHttpClient({});
+    const discovery = new OidcDiscovery(stub);
+    await assert.rejects(discovery.Endpoints("http://x/.well-known/openid-configuration"));
+    assert.equal(stub.GetCount, 0);
 });

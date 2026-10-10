@@ -34,11 +34,13 @@ export class OidcDiscovery
             return cached.value;
         }
 
+        OidcDiscovery.RequireHttps(discoveryUrl);
         const doc = await this.http.GetJson(discoveryUrl) as Record<string, unknown> | null;
         const issuer = OidcDiscovery.RequiredString(doc, OidcDiscovery.IssuerField);
         const authorization = OidcDiscovery.RequiredString(doc, OidcDiscovery.AuthorizationEndpointField);
         const token = OidcDiscovery.RequiredString(doc, OidcDiscovery.TokenEndpointField);
         const jwks = OidcDiscovery.RequiredString(doc, OidcDiscovery.JwksUriField);
+        OidcDiscovery.RequireHttps(issuer);
         OidcDiscovery.RequireHttps(authorization);
         OidcDiscovery.RequireHttps(token);
         OidcDiscovery.RequireHttps(jwks);
