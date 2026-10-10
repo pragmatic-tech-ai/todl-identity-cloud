@@ -21,7 +21,7 @@ export class MicrosoftEntraProfile extends OidcProviderProfile
     private static readonly Host = "https://login.microsoftonline.com/";
     private static readonly IssuerSuffix = "/v2.0";
     private static readonly WellKnownSuffix = "/.well-known/openid-configuration";
-    private static readonly MissingTenantError = "OIDC provider setting is required: " + OidcSettingKeys.AadTenantId;
+    private static readonly MissingTenantError = OidcProviderProfile.MissingSettingPrefix + OidcSettingKeys.AadTenantId;
 
     public constructor()
     {

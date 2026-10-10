@@ -3,7 +3,7 @@ import { OidcSettingKeys } from "./oidc-setting-keys.js";
 
 export class OidcProviderProfile
 {
-    private static readonly MissingSettingPrefix = "OIDC provider setting is required: ";
+    public static readonly MissingSettingPrefix = "OIDC provider setting is required: ";
     private static readonly MissingIssuerError = OidcProviderProfile.MissingSettingPrefix + OidcSettingKeys.Issuer;
     private static readonly MissingDiscoveryUrlError = OidcProviderProfile.MissingSettingPrefix + OidcSettingKeys.DiscoveryUrl;
 

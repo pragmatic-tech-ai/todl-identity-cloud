@@ -20,7 +20,7 @@ import { OidcResolvedConfig } from "../oidc/oidc-resolved-config.js";
 import { OidcAuthenticator } from "../oidc/oidc-authenticator.js";
 import { ClaimsMapper } from "../claims/claims-mapper.js";
 import { GroupRoleMapper } from "../claims/group-role-mapper.js";
-import type { OidcProviderProfile } from "./oidc-provider-profile.js";
+import { OidcProviderProfile } from "./oidc-provider-profile.js";
 import { OidcSettingKeys } from "./oidc-setting-keys.js";
 import { OidcDirectory } from "./oidc-directory.js";
 import { ClaimsAccessPolicy } from "./claims-access-policy.js";
@@ -41,8 +41,6 @@ export interface OidcPackOptions
 
 export abstract class OidcIdentityProviderPackBase implements IIdentityProviderPack
 {
-    private static readonly MissingSettingErrorPrefix = "OIDC provider setting is required: ";
-
     public readonly DelegationDepth: DelegationDepth;
     public readonly Authenticators: readonly IAuthenticator[];
     public readonly Directory: IPrincipalDirectory;
@@ -112,7 +110,7 @@ export abstract class OidcIdentityProviderPackBase implements IIdentityProviderP
         const value = settings.get(key);
         if (value === undefined || value === "")
         {
-            throw new Error(OidcIdentityProviderPackBase.MissingSettingErrorPrefix + key);
+            throw new Error(OidcProviderProfile.MissingSettingPrefix + key);
         }
         return value;
     }
