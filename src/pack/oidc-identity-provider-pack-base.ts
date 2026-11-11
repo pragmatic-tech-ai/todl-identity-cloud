@@ -93,7 +93,8 @@ export abstract class OidcIdentityProviderPackBase implements IIdentityProviderP
             new GroupRoleMapper(opts.Grants),
             opts.Audit,
             opts.Config,
-            opts.now ?? (() => new Date()));
+            opts.now ?? (() => new Date()),
+            opts.Vault);
         this.Directory = directory;
         this.Authenticators = [this.depthAware];
         this.DelegationDepth = opts.Config.DelegationDepth;

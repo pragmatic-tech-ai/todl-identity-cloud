@@ -15,7 +15,7 @@ class StubHttp implements IHttpClient
 {
     private static readonly NoNetwork = "no network in conformance";
 
-    public async GetJson(_url: string): Promise<unknown>
+    public async GetJson(_url: string, _bearer?: string): Promise<unknown>
     {
         throw new Error(StubHttp.NoNetwork);
     }

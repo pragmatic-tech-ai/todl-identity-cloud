@@ -37,13 +37,10 @@ export class EntraFixture
     public static readonly TenantName = "Acme";
     public static readonly Subject = "oid-u1";
     public static readonly SubClaimValue = "sub-u1";
-    public static readonly AccessToken = "up-access-token";
-    public static readonly RefreshToken = "up-refresh-token";
     public static readonly ApiScope = "api://app/access";
     public static readonly Email = "a@x.io";
     public static readonly Group = "group-ed";
     public static readonly AuthCode = "auth-code";
-    public static readonly BearerType = "Bearer";
 
     public static Settings(): Map<string, string>
     {
@@ -94,7 +91,7 @@ export class EntraFixture
             email: EntraFixture.Email,
             groups: [EntraFixture.Group],
         });
-        http.NextTokenResponse = { id_token: idToken, token_type: EntraFixture.BearerType, access_token: EntraFixture.AccessToken, refresh_token: EntraFixture.RefreshToken };
+        http.NextTokenResponse = idp.TokenResponse(idToken);
         return { pack, secrets, tenant, http, audit, sessions, grants, State, idp, idToken };
     }
 }

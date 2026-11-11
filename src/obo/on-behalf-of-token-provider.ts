@@ -1,8 +1,6 @@
 import { decodeJwt } from "jose";
 import {
     PerUserSourceTokenCache,
-    Principal,
-    PrincipalKind,
     PresentedSecret,
     SourceToken,
     SourceTokenError,
@@ -57,8 +55,7 @@ export class OnBehalfOfTokenProvider implements ISourceTokenProvider
 
     public async Acquire(request: SourceTokenRequest): Promise<SourceToken>
     {
-        const asPrincipal = new Principal(request.PrincipalId, request.TenantId, PrincipalKind.System, new Map(), []);
-        if (SystemPrincipal.Is(asPrincipal))
+        if (SystemPrincipal.IsId(request.PrincipalId))
         {
             throw new SourceTokenError(SourceTokenFailure.UnsupportedPrincipal);
         }
@@ -74,8 +71,12 @@ export class OnBehalfOfTokenProvider implements ISourceTokenProvider
 
         try
         {
-            if (tokens.RefreshToken !== null && this.IsExpiring(tokens.AccessToken))
+            if (this.IsExpiring(tokens.AccessToken))
             {
+                if (tokens.RefreshToken === null)
+                {
+                    throw new SourceTokenError(SourceTokenFailure.NoUpstreamSession);
+                }
                 tokens = await this.Refresh(request, tokens.RefreshToken);
             }
             const token = await this.Exchange(request, tokens.AccessToken);

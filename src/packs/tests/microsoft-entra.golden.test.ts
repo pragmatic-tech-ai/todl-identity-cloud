@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { AuthMethod, AuthenticatedResult, AuditEventKind, Credential, DelegationDepth, PresentedSecret } from "@pragmatic-tech-ai/todl-identity";
 import { UpstreamTokenVault } from "../../obo/upstream-token-vault.js";
+import { FakeOidcIdp } from "../../testing/fake-oidc-idp.js";
 import { EntraFixture } from "./entra-fixture.js";
 
 class Golden
@@ -35,8 +36,8 @@ class Golden
                 tenant);
             assert.ok(result instanceof AuthenticatedResult);
             const stored = await new UpstreamTokenVault(secrets).Get(EntraFixture.TenantId, EntraFixture.Subject);
-            assert.equal(stored?.AccessToken, EntraFixture.AccessToken);
-            assert.equal(stored?.RefreshToken, EntraFixture.RefreshToken);
+            assert.equal(stored?.AccessToken, FakeOidcIdp.AccessToken);
+            assert.equal(stored?.RefreshToken, FakeOidcIdp.RefreshToken);
         });
 
         test(Golden.TestName, async () =>

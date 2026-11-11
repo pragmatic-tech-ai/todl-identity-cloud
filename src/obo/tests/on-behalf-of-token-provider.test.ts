@@ -6,33 +6,13 @@ import {
     SourceTokenFailure,
     SourceTokenRequest,
 } from "@pragmatic-tech-ai/todl-identity";
-import type { ISecretStore } from "@pragmatic-tech-ai/todl-identity";
+import { MapSecretStore } from "../../packs/tests/entra-fixture.js";
 import type { IHttpClient } from "../../http/http-client.js";
 import { OidcDiscovery } from "../../oidc/oidc-discovery.js";
 import { OidcResolvedConfig } from "../../oidc/oidc-resolved-config.js";
 import { FakeOidcHttpClient, FakeOidcIdp } from "../../testing/fake-oidc-idp.js";
 import { OnBehalfOfTokenProvider } from "../on-behalf-of-token-provider.js";
 import { UpstreamTokens, UpstreamTokenVault } from "../upstream-token-vault.js";
-
-class MapSecretStore implements ISecretStore
-{
-    private readonly map = new Map<string, string>();
-
-    public async Get(reference: string): Promise<string | null>
-    {
-        return this.map.get(reference) ?? null;
-    }
-
-    public async Put(reference: string, secret: string): Promise<void>
-    {
-        this.map.set(reference, secret);
-    }
-
-    public async Delete(reference: string): Promise<void>
-    {
-        this.map.delete(reference);
-    }
-}
 
 class OboHttp implements IHttpClient
 {
@@ -158,6 +138,18 @@ class Cases
             const f = await Fixture.Create();
             await assert.rejects(
                 f.Provider.Acquire(Fixture.Request("nobody")),
+                (e: unknown) => e instanceof SourceTokenError && e.Failure === SourceTokenFailure.NoUpstreamSession);
+            assert.equal(f.Http.Posts.length, 0);
+        });
+
+        test("obo rejects an expired assertion with no refresh token and makes no POST", async () =>
+        {
+            const now = new Date();
+            const f = await Fixture.Create(now);
+            const expired = Fixture.Unsigned({ exp: Math.floor(now.getTime() / 1000) - 10 });
+            await f.Vault.Put(Fixture.Tenant, "alice", new UpstreamTokens(expired, null));
+            await assert.rejects(
+                f.Provider.Acquire(Fixture.Request("alice")),
                 (e: unknown) => e instanceof SourceTokenError && e.Failure === SourceTokenFailure.NoUpstreamSession);
             assert.equal(f.Http.Posts.length, 0);
         });

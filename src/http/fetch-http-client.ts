@@ -18,14 +18,14 @@ export class FetchHttpClient implements IHttpClient
         this.RequireHttps(url);
         const headers: Record<string, string> = bearer === undefined ? {} : { [FetchHttpClient.AuthorizationHeader]: FetchHttpClient.BearerPrefix + bearer };
         const res = await fetch(url, { redirect: FetchHttpClient.RedirectMode, headers, signal: AbortSignal.timeout(FetchHttpClient.TimeoutMs) });
-        return this.ReadJson(res, url);
+        return this.ReadJson(res);
     }
 
     public async PostForm(url: string, fields: ReadonlyMap<string, string>): Promise<unknown>
     {
         this.RequireHttps(url);
         const res = await fetch(url, { method: FetchHttpClient.PostMethod, redirect: FetchHttpClient.RedirectMode, headers: { [FetchHttpClient.ContentTypeHeader]: FetchHttpClient.FormContentType }, body: new URLSearchParams([...fields]).toString(), signal: AbortSignal.timeout(FetchHttpClient.TimeoutMs) });
-        return this.ReadJson(res, url);
+        return this.ReadJson(res);
     }
 
     private RequireHttps(url: string): void
@@ -37,11 +37,11 @@ export class FetchHttpClient implements IHttpClient
         }
     }
 
-    private async ReadJson(res: Response, url: string): Promise<unknown>
+    private async ReadJson(res: Response): Promise<unknown>
     {
         if (!res.ok)
         {
-            throw new HttpStatusError(res.status, url);
+            throw new HttpStatusError(res.status);
         }
         return await res.json();
     }

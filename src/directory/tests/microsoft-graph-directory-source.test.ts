@@ -1,31 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { IdpDirectoryRequest, IdpUserState, Tenant, TenantKind } from "@pragmatic-tech-ai/todl-identity";
-import type { ISecretStore } from "@pragmatic-tech-ai/todl-identity";
+import { MapSecretStore } from "../../packs/tests/entra-fixture.js";
 import type { IHttpClient } from "../../http/http-client.js";
 import { HttpStatusError } from "../../http/http-status-error.js";
 import { MicrosoftGraphDirectorySource } from "../microsoft-graph-directory-source.js";
 import { OidcSettingKeys } from "../../pack/oidc-setting-keys.js";
-
-class MapSecretStore implements ISecretStore
-{
-    private readonly map = new Map<string, string>();
-
-    public async Get(reference: string): Promise<string | null>
-    {
-        return this.map.get(reference) ?? null;
-    }
-
-    public async Put(reference: string, secret: string): Promise<void>
-    {
-        this.map.set(reference, secret);
-    }
-
-    public async Delete(reference: string): Promise<void>
-    {
-        this.map.delete(reference);
-    }
-}
 
 class GraphHttp implements IHttpClient
 {
@@ -36,25 +16,30 @@ class GraphHttp implements IHttpClient
 
     public readonly Bearers: Array<string | undefined> = [];
     public FailUsersWith: number | null = null;
+    public PageTwo: unknown[] = [{ id: "bob", accountEnabled: true }];
+    public PageTwoStatus: number | null = null;
+    public UserBody: unknown = undefined;
 
     public async GetJson(url: string, bearer?: string): Promise<unknown>
     {
         this.Bearers.push(bearer);
         if (url === GraphHttp.GroupUrl)
         {
-            return { value: [{ id: "alice" }, { id: "dana", accountEnabled: false }], "@odata.nextLink": GraphHttp.PageTwoUrl };
+            return { value: [{ id: "alice", accountEnabled: true }, { id: "dana", accountEnabled: false }], "@odata.nextLink": GraphHttp.PageTwoUrl };
         }
         if (url === GraphHttp.PageTwoUrl)
         {
-            return { value: [{ id: "bob" }] };
+            if (this.PageTwoStatus !== null) throw new HttpStatusError(this.PageTwoStatus);
+            return { value: this.PageTwo };
         }
         if (this.FailUsersWith !== null)
         {
-            throw new HttpStatusError(this.FailUsersWith, url);
+            throw new HttpStatusError(this.FailUsersWith);
         }
+        if (this.UserBody !== undefined) return this.UserBody;
         if (url.startsWith(GraphHttp.Base + "users/alice")) return { id: "alice", accountEnabled: true };
         if (url.startsWith(GraphHttp.Base + "users/dana")) return { id: "dana", accountEnabled: false };
-        throw new HttpStatusError(404, url);
+        throw new HttpStatusError(404);
     }
 
     public async PostForm(_url: string, _fields: ReadonlyMap<string, string>): Promise<unknown>
@@ -120,4 +105,29 @@ class Cases
     }
 }
 
+class StrictCases
+{
+    public static Register(): void
+    {
+        test("graph source rejects a 404 on a later page instead of dropping earlier members", async () =>
+        {
+            const http = new GraphHttp();
+            http.PageTwoStatus = 404;
+            const source = await Fixture.Source(http);
+            await assert.rejects(source.Snapshot(Fixture.Tenant(), new IdpDirectoryRequest(["hr-staff"], [])));
+        });
+
+        test("graph source rejects a null user response and an incomplete member entry", async () =>
+        {
+            const nullUser = new GraphHttp();
+            nullUser.UserBody = null;
+            await assert.rejects((await Fixture.Source(nullUser)).Snapshot(Fixture.Tenant(), new IdpDirectoryRequest([], ["alice"])));
+            const badMember = new GraphHttp();
+            badMember.PageTwo = [{ id: "bob" }];
+            await assert.rejects((await Fixture.Source(badMember)).Snapshot(Fixture.Tenant(), new IdpDirectoryRequest(["hr-staff"], [])));
+        });
+    }
+}
+
 Cases.Register();
+StrictCases.Register();

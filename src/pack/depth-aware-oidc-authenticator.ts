@@ -8,6 +8,7 @@ import type {
     PresentedSecret,
     Tenant,
 } from "@pragmatic-tech-ai/todl-identity";
+import type { UpstreamTokenVault } from "../obo/upstream-token-vault.js";
 import type { OidcAuthenticator } from "../oidc/oidc-authenticator.js";
 import type { GroupRoleMapper } from "../claims/group-role-mapper.js";
 import type { OidcDirectory } from "./oidc-directory.js";
@@ -25,7 +26,8 @@ export class DepthAwareOidcAuthenticator implements IAuthenticator
         private readonly groupRoleMapper: GroupRoleMapper,
         private readonly audit: IAuditSink,
         private readonly config: IdentityConfig,
-        private readonly now: () => Date = () => new Date())
+        private readonly now: () => Date = () => new Date(),
+        private readonly vault?: UpstreamTokenVault)
     {
     }
 
@@ -40,12 +42,21 @@ export class DepthAwareOidcAuthenticator implements IAuthenticator
         if (result instanceof AuthenticatedResult)
         {
             const principal = this.AdjustForDepth(result.Principal);
-            this.directory.Remember(principal);
-            if (this.config.DelegationDepth === DelegationDepth.ExternalGrants)
+            try
             {
-                await this.groupRoleMapper.ApplyGroups(principal, tenant, this.config.GroupRoleMap);
+                this.directory.Remember(principal);
+                if (this.config.DelegationDepth === DelegationDepth.ExternalGrants)
+                {
+                    await this.groupRoleMapper.ApplyGroups(principal, tenant, this.config.GroupRoleMap);
+                }
+                await this.RecordAuth(tenant, principal.Id);
             }
-            await this.RecordAuth(tenant, principal.Id);
+            catch (e)
+            {
+                // The inner authenticator already stored the upstream tokens; a sign-in that does not complete must not keep them.
+                await this.vault?.Delete(tenant.Id, principal.Id);
+                throw e;
+            }
             return new AuthenticatedResult(principal);
         }
         return result;

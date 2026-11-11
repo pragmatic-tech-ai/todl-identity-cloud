@@ -34,6 +34,7 @@ export class MicrosoftGraphDirectorySource implements IIdpDirectorySource
     private static readonly MissingSecretError = "Graph directory source client secret is not available";
     private static readonly NoTokenError = "Graph token response carried no access token";
     private static readonly ForeignLinkError = "Graph paging link left the Graph endpoint";
+    private static readonly MalformedUserError = "Graph response was not a complete user record";
     private static readonly MalformedPageError = "Graph response was not a page of results";
 
     private readonly now: () => Date;
@@ -86,42 +87,60 @@ export class MicrosoftGraphDirectorySource implements IIdpDirectorySource
     {
         const members: string[] = [];
         let next: string | null = this.GraphUrl(MicrosoftGraphDirectorySource.GroupMembersTemplate, groupId);
-        try
+        let first = true;
+        while (next !== null)
         {
-            while (next !== null)
+            let page: Record<string, unknown> | null;
+            try
             {
-                const page = await this.http.GetJson(next, bearer) as Record<string, unknown> | null;
-                const items = page?.[MicrosoftGraphDirectorySource.ValueField];
-                if (!Array.isArray(items)) throw new Error(MicrosoftGraphDirectorySource.MalformedPageError);
-                for (const item of items)
-                {
-                    const id = (item as Record<string, unknown> | null)?.[MicrosoftGraphDirectorySource.IdField];
-                    if (typeof id === "string") members.push(id);
-                }
-                const link = page?.[MicrosoftGraphDirectorySource.NextLinkField];
-                next = typeof link === "string" ? this.RequireGraphLink(link) : null;
+                page = await this.http.GetJson(next, bearer) as Record<string, unknown> | null;
             }
-        }
-        catch (e)
-        {
-            if (this.IsNotFound(e)) return [];
-            throw e;
+            catch (e)
+            {
+                // A 404 means the group is gone only on the first request; later it would discard earlier pages.
+                if (first && this.IsNotFound(e)) return [];
+                throw e;
+            }
+            first = false;
+            const items = page?.[MicrosoftGraphDirectorySource.ValueField];
+            if (!Array.isArray(items)) throw new Error(MicrosoftGraphDirectorySource.MalformedPageError);
+            for (const item of items)
+            {
+                members.push(this.RequireUser(item).id);
+            }
+            const link = page?.[MicrosoftGraphDirectorySource.NextLinkField];
+            next = typeof link === "string" ? this.RequireGraphLink(link) : null;
         }
         return members;
     }
 
     private async StateOf(principalId: string, bearer: string): Promise<IdpUserState>
     {
+        let response: unknown;
         try
         {
-            const user = await this.http.GetJson(this.GraphUrl(MicrosoftGraphDirectorySource.UserTemplate, principalId), bearer) as Record<string, unknown> | null;
-            return user?.[MicrosoftGraphDirectorySource.AccountEnabledField] === false ? IdpUserState.Disabled : IdpUserState.Enabled;
+            response = await this.http.GetJson(this.GraphUrl(MicrosoftGraphDirectorySource.UserTemplate, principalId), bearer);
         }
         catch (e)
         {
             if (this.IsNotFound(e)) return IdpUserState.Deleted;
             throw e;
         }
+        const user = this.RequireUser(response);
+        if (user.id.toLowerCase() !== principalId.toLowerCase()) throw new Error(MicrosoftGraphDirectorySource.MalformedUserError);
+        return user.accountEnabled ? IdpUserState.Enabled : IdpUserState.Disabled;
+    }
+
+    private RequireUser(value: unknown): { id: string; accountEnabled: boolean }
+    {
+        const record = value as Record<string, unknown> | null;
+        const id = record?.[MicrosoftGraphDirectorySource.IdField];
+        const enabled = record?.[MicrosoftGraphDirectorySource.AccountEnabledField];
+        if (typeof id !== "string" || id === "" || typeof enabled !== "boolean")
+        {
+            throw new Error(MicrosoftGraphDirectorySource.MalformedUserError);
+        }
+        return { id, accountEnabled: enabled };
     }
 
     private GraphUrl(template: string, id: string): string

@@ -24,6 +24,12 @@ export class FakeOidcIdp
     private static readonly JwtTyp = "JWT";
     private static readonly Base64Url = "base64url";
     private static readonly DefaultExpSeconds = 300;
+    private static readonly SubClaim = "sub";
+    private static readonly OidClaim = "oid";
+    private static readonly BearerType = "Bearer";
+
+    public static readonly AccessToken = "fake-access-token";
+    public static readonly RefreshToken = "fake-refresh-token";
 
     public readonly AuthorizationEndpoint: string;
     public readonly TokenEndpoint: string;
@@ -71,12 +77,19 @@ export class FakeOidcIdp
     public async MintIdToken(payload: Record<string, unknown>, opts?: MintOptions): Promise<string>
     {
         const exp = Math.floor(Date.now() / 1000) + (opts?.expSecondsFromNow ?? FakeOidcIdp.DefaultExpSeconds);
-        return await new SignJWT(payload)
+        const claims = typeof payload[FakeOidcIdp.SubClaim] === "string" ? { [FakeOidcIdp.OidClaim]: payload[FakeOidcIdp.SubClaim], ...payload } : payload;
+        return await new SignJWT(claims)
             .setProtectedHeader({ alg: opts?.alg ?? FakeOidcIdp.SigAlg, kid: opts?.kid ?? this.kid })
             .setIssuedAt()
             .setIssuer(opts?.issuer ?? this.Issuer)
             .setExpirationTime(exp)
             .sign(this.privateKey);
+    }
+
+    /** A token-endpoint response: the id token plus a fake upstream access and refresh token. */
+    public TokenResponse(idToken: string): object
+    {
+        return { id_token: idToken, token_type: FakeOidcIdp.BearerType, access_token: FakeOidcIdp.AccessToken, refresh_token: FakeOidcIdp.RefreshToken };
     }
 
     public MintRawUnsigned(payload: Record<string, unknown>): string
@@ -98,16 +111,14 @@ export class FakeOidcHttpClient implements IHttpClient
 
     public NextTokenResponse: unknown = null;
     public FailTokenEndpoint = false;
-    public readonly Bearers: Array<string | undefined> = [];
     public readonly PostedFields: Array<ReadonlyMap<string, string>> = [];
 
     public constructor(private readonly idp: FakeOidcIdp)
     {
     }
 
-    public async GetJson(url: string, bearer?: string): Promise<unknown>
+    public async GetJson(url: string, _bearer?: string): Promise<unknown>
     {
-        this.Bearers.push(bearer);
         if (url === this.idp.DiscoveryUrl)
         {
             return this.idp.DiscoveryDocument();
