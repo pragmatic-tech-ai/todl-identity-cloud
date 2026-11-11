@@ -12,10 +12,10 @@ class SpyHttpClient implements IHttpClient
     {
     }
 
-    public GetJson(url: string): Promise<unknown>
+    public GetJson(url: string, bearer?: string): Promise<unknown>
     {
         this.GetCount++;
-        return this.inner.GetJson(url);
+        return this.inner.GetJson(url, bearer);
     }
 
     public PostForm(url: string, fields: ReadonlyMap<string, string>): Promise<unknown>

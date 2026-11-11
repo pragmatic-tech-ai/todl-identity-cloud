@@ -6,4 +6,5 @@ export class OidcSettingKeys
     public static readonly Issuer = "issuer";
     public static readonly DiscoveryUrl = "discoveryUrl";
     public static readonly AadTenantId = "aadTenantId";
+    public static readonly ApiScope = "apiScope";
 }

@@ -5,6 +5,9 @@ import { OidcSettingKeys } from "../pack/oidc-setting-keys.js";
 /**
  * Microsoft Entra ID (v2.0 endpoint) profile.
  *
+ * The principal id is the `oid` claim, which equals the Microsoft Graph object id, so directory
+ * sync can address users directly.
+ *
  * Groups "overage" boundary: when a user belongs to too many groups, Entra omits the
  * `groups` claim and emits a `_claim_names` / `_claim_sources` overage indicator, which
  * requires a Microsoft Graph call to enumerate the groups. Resolving overage via Graph is
@@ -17,6 +20,7 @@ export class MicrosoftEntraProfile extends OidcProviderProfile
     private static readonly EmailClaim = "email";
     private static readonly NameClaim = "name";
     private static readonly GroupsClaim = "groups";
+    private static readonly OidClaim = "oid";
     private static readonly SecretParam = "client_secret";
     private static readonly Host = "https://login.microsoftonline.com/";
     private static readonly IssuerSuffix = "/v2.0";
@@ -32,7 +36,8 @@ export class MicrosoftEntraProfile extends OidcProviderProfile
                 [MicrosoftEntraProfile.NameClaim, MicrosoftEntraProfile.NameClaim],
             ]),
             new ClaimArrayGroupStrategy(MicrosoftEntraProfile.GroupsClaim),
-            MicrosoftEntraProfile.SecretParam);
+            MicrosoftEntraProfile.SecretParam,
+            MicrosoftEntraProfile.OidClaim);
     }
 
     public override ResolveIssuer(settings: ReadonlyMap<string, string>): string

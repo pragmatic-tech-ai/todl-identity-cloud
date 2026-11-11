@@ -35,7 +35,11 @@ export class EntraFixture
     public static readonly ConfigPackId = "entra";
     public static readonly TenantId = "t1";
     public static readonly TenantName = "Acme";
-    public static readonly Subject = "u1";
+    public static readonly Subject = "oid-u1";
+    public static readonly SubClaimValue = "sub-u1";
+    public static readonly AccessToken = "up-access-token";
+    public static readonly RefreshToken = "up-refresh-token";
+    public static readonly ApiScope = "api://app/access";
     public static readonly Email = "a@x.io";
     public static readonly Group = "group-ed";
     public static readonly AuthCode = "auth-code";
@@ -57,7 +61,8 @@ export class EntraFixture
 
     public static async EntraFlow(
         depth: DelegationDepth = DelegationDepth.AuthnDirectory,
-        groupRoleMap: ReadonlyMap<string, Role> = new Map())
+        groupRoleMap: ReadonlyMap<string, Role> = new Map(),
+        apiScope?: string)
     {
         const idp = await FakeOidcIdp.Create(EntraFixture.EntraIssuer);
         const http = new FakeOidcHttpClient(idp);
@@ -65,12 +70,15 @@ export class EntraFixture
         const grants = new FakeRoleGrantStore();
         const audit = new FakeAuditSink();
         const flowStates = new InMemoryOidcFlowStateStore();
-        const config = new IdentityConfig(EntraFixture.ConfigPackId, depth, EntraFixture.Settings(), groupRoleMap, new Map());
+        const settings = EntraFixture.Settings();
+        if (apiScope !== undefined) settings.set(OidcSettingKeys.ApiScope, apiScope);
+        const secrets = new MapSecretStore();
+        const config = new IdentityConfig(EntraFixture.ConfigPackId, depth, settings, groupRoleMap, new Map());
         const pack = MicrosoftEntraPack.Create({
             Config: config,
             Http: http,
             FlowStates: flowStates,
-            Secrets: new MapSecretStore(),
+            Secrets: secrets,
             Sessions: sessions,
             Grants: grants,
             Audit: audit,
@@ -79,13 +87,14 @@ export class EntraFixture
         const { State } = await pack.BeginAuthorization(tenant);
         const nonce = flowStates.Peek(State)!.Nonce;
         const idToken = await idp.MintIdToken({
-            sub: EntraFixture.Subject,
+            sub: EntraFixture.SubClaimValue,
+            oid: EntraFixture.Subject,
             aud: EntraFixture.ClientId,
             nonce,
             email: EntraFixture.Email,
             groups: [EntraFixture.Group],
         });
-        http.NextTokenResponse = { id_token: idToken, token_type: EntraFixture.BearerType };
-        return { pack, tenant, http, audit, sessions, grants, State, idp, idToken };
+        http.NextTokenResponse = { id_token: idToken, token_type: EntraFixture.BearerType, access_token: EntraFixture.AccessToken, refresh_token: EntraFixture.RefreshToken };
+        return { pack, secrets, tenant, http, audit, sessions, grants, State, idp, idToken };
     }
 }

@@ -17,6 +17,8 @@ import type { JwksCache } from "./jwks-cache.js";
 import type { IOidcFlowStateStore } from "./flow-state-store.js";
 import type { ClaimsMapper } from "../claims/claims-mapper.js";
 import type { OidcResolvedConfig } from "./oidc-resolved-config.js";
+import { UpstreamTokens } from "../obo/upstream-token-vault.js";
+import type { UpstreamTokenVault } from "../obo/upstream-token-vault.js";
 import { PkceChallenge } from "./pkce-challenge.js";
 import { OidcFlowState } from "./oidc-flow-state.js";
 import { AuthorizationRequest } from "./authorization-request.js";
@@ -31,6 +33,7 @@ export interface OidcAuthenticatorOptions
     Claims: ClaimsMapper;
     Config: IdentityConfig;
     Resolved: OidcResolvedConfig;
+    Vault?: UpstreamTokenVault;
     now?: () => Date;
 }
 
@@ -47,6 +50,8 @@ export class OidcAuthenticator implements IAuthenticator
     private static readonly RedirectUriParam = "redirect_uri";
     private static readonly ClientIdParam = "client_id";
     private static readonly IdTokenField = "id_token";
+    private static readonly AccessTokenField = "access_token";
+    private static readonly RefreshTokenField = "refresh_token";
     private static readonly NonceClaim = "nonce";
     private static readonly AllowedAlgs = ["RS256", "ES256"] as const;
     private static readonly ClockToleranceSec = 60;
@@ -143,12 +148,24 @@ export class OidcAuthenticator implements IAuthenticator
             }
 
             const principal = this.opts.Claims.Map(payload as Record<string, unknown>, tenant, this.opts.Config);
+            await this.StoreUpstream(tenant, principal.Id, tokenResponse);
             return new AuthenticatedResult(principal);
         }
         catch
         {
             return this.Reject();
         }
+    }
+
+    private async StoreUpstream(tenant: Tenant, principalId: string, tokenResponse: unknown): Promise<void>
+    {
+        const vault = this.opts.Vault;
+        if (vault === undefined) return;
+        const body = tokenResponse as Record<string, unknown>;
+        const access = body[OidcAuthenticator.AccessTokenField];
+        if (typeof access !== "string") return;
+        const refresh = body[OidcAuthenticator.RefreshTokenField];
+        await vault.Put(tenant.Id, principalId, new UpstreamTokens(access, typeof refresh === "string" ? refresh : null));
     }
 
     private IsNoMatchingKey(e: unknown): boolean

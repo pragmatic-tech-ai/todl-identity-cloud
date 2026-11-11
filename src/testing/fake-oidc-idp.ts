@@ -98,14 +98,16 @@ export class FakeOidcHttpClient implements IHttpClient
 
     public NextTokenResponse: unknown = null;
     public FailTokenEndpoint = false;
+    public readonly Bearers: Array<string | undefined> = [];
     public readonly PostedFields: Array<ReadonlyMap<string, string>> = [];
 
     public constructor(private readonly idp: FakeOidcIdp)
     {
     }
 
-    public async GetJson(url: string): Promise<unknown>
+    public async GetJson(url: string, bearer?: string): Promise<unknown>
     {
+        this.Bearers.push(bearer);
         if (url === this.idp.DiscoveryUrl)
         {
             return this.idp.DiscoveryDocument();

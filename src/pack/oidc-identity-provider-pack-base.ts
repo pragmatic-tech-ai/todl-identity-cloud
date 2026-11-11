@@ -25,6 +25,7 @@ import { OidcSettingKeys } from "./oidc-setting-keys.js";
 import { OidcDirectory } from "./oidc-directory.js";
 import { ClaimsAccessPolicy } from "./claims-access-policy.js";
 import { DepthAwareOidcAuthenticator } from "./depth-aware-oidc-authenticator.js";
+import type { UpstreamTokenVault } from "../obo/upstream-token-vault.js";
 
 export interface OidcPackOptions
 {
@@ -36,11 +37,14 @@ export interface OidcPackOptions
     Sessions: ISessionManager;
     Grants: IRoleGrantStore;
     Audit: IAuditSink;
+    Vault?: UpstreamTokenVault;
     now?: () => Date;
 }
 
 export abstract class OidcIdentityProviderPackBase implements IIdentityProviderPack
 {
+    private static readonly OfflineAccessScope = "offline_access";
+
     public readonly DelegationDepth: DelegationDepth;
     public readonly Authenticators: readonly IAuthenticator[];
     public readonly Directory: IPrincipalDirectory;
@@ -49,22 +53,27 @@ export abstract class OidcIdentityProviderPackBase implements IIdentityProviderP
     public readonly Policy?: IAccessPolicy;
     public readonly Audit: IAuditSink;
 
+    protected readonly Discovery: OidcDiscovery;
+    protected readonly Resolved: OidcResolvedConfig;
+
     private readonly depthAware: DepthAwareOidcAuthenticator;
 
     public constructor(protected readonly opts: OidcPackOptions)
     {
         const settings = opts.Config.ProviderSettings;
         const discovery = new OidcDiscovery(opts.Http, opts.now);
+        this.Discovery = discovery;
         const jwks = new JwksCache(opts.Http);
-        const claims = new ClaimsMapper(opts.Profile.DefaultClaimsMapping, opts.Profile.GroupStrategy);
+        const claims = new ClaimsMapper(opts.Profile.DefaultClaimsMapping, opts.Profile.GroupStrategy, opts.Profile.SubjectClaim);
         const resolved = new OidcResolvedConfig(
             opts.Profile.ResolveDiscoveryUrl(settings),
             opts.Profile.ResolveIssuer(settings),
             OidcIdentityProviderPackBase.RequireSetting(settings, OidcSettingKeys.ClientId),
             OidcIdentityProviderPackBase.RequireSetting(settings, OidcSettingKeys.RedirectUri),
-            opts.Profile.DefaultScopes,
+            OidcIdentityProviderPackBase.ScopesFor(opts.Profile, settings),
             settings.get(OidcSettingKeys.SecretRef) ?? null,
             opts.Profile.ClientSecretParam);
+        this.Resolved = resolved;
         const inner = new OidcAuthenticator({
             Http: opts.Http,
             Discovery: discovery,
@@ -74,6 +83,7 @@ export abstract class OidcIdentityProviderPackBase implements IIdentityProviderP
             Claims: claims,
             Config: opts.Config,
             Resolved: resolved,
+            Vault: opts.Vault,
             now: opts.now,
         });
         const directory = new OidcDirectory();
@@ -103,6 +113,13 @@ export abstract class OidcIdentityProviderPackBase implements IIdentityProviderP
     public BeginAuthorization(tenant: Tenant): Promise<{ Url: string; State: string }>
     {
         return this.depthAware.BeginAuthorization(tenant);
+    }
+
+    private static ScopesFor(profile: OidcProviderProfile, settings: ReadonlyMap<string, string>): readonly string[]
+    {
+        const apiScope = settings.get(OidcSettingKeys.ApiScope);
+        if (apiScope === undefined || apiScope === "") return profile.DefaultScopes;
+        return [...profile.DefaultScopes, apiScope, OidcIdentityProviderPackBase.OfflineAccessScope];
     }
 
     private static RequireSetting(settings: ReadonlyMap<string, string>, key: string): string

@@ -1,15 +1,16 @@
 import { Principal, PrincipalKind } from "@pragmatic-tech-ai/todl-identity";
 import type { IdentityConfig, Tenant } from "@pragmatic-tech-ai/todl-identity";
+import { OidcProviderProfile } from "../pack/oidc-provider-profile.js";
 import type { GroupStrategy } from "./group-strategy.js";
 
 export class ClaimsMapper
 {
-    private static readonly SubClaim = "sub";
     private static readonly MissingSubjectError = "Token has no usable subject claim";
 
     public constructor(
         private readonly profileDefaults: ReadonlyMap<string, string>,
-        private readonly groupStrategy: GroupStrategy)
+        private readonly groupStrategy: GroupStrategy,
+        private readonly subjectClaim: string = OidcProviderProfile.DefaultSubjectClaim)
     {
     }
 
@@ -21,7 +22,7 @@ export class ClaimsMapper
             mapping.set(principalClaim, idpClaim);
         }
 
-        const sub = payload[ClaimsMapper.SubClaim];
+        const sub = payload[this.subjectClaim];
         if (typeof sub !== "string" || sub.length === 0)
         {
             throw new Error(ClaimsMapper.MissingSubjectError);

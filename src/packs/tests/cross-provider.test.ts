@@ -90,7 +90,7 @@ class Fixture
     {
         const { State } = await pack.BeginAuthorization(this.TenantValue);
         const nonce = flowStates.Peek(State)!.Nonce;
-        http.NextTokenResponse = { id_token: await foreignIdp.MintIdToken({ sub: Fixture.Subject, aud: Fixture.ClientId, nonce }) };
+        http.NextTokenResponse = { id_token: await foreignIdp.MintIdToken({ sub: Fixture.Subject, oid: Fixture.Subject, aud: Fixture.ClientId, nonce }) };
         return await pack.AuthenticatorFor(AuthMethod.Oidc)!.Authenticate(
             new Credential(AuthMethod.Oidc, State),
             new PresentedSecret(Fixture.AuthCode),

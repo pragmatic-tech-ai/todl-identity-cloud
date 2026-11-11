@@ -1,4 +1,5 @@
 export type { IHttpClient } from "./http/http-client.js";
+export { HttpStatusError } from "./http/http-status-error.js";
 export { FetchHttpClient } from "./http/fetch-http-client.js";
 export { FakeOidcIdp, FakeOidcHttpClient } from "./testing/fake-oidc-idp.js";
 export type { MintOptions } from "./testing/fake-oidc-idp.js";
@@ -25,6 +26,11 @@ export { ClaimsAccessPolicy } from "./pack/claims-access-policy.js";
 export { DepthAwareOidcAuthenticator } from "./pack/depth-aware-oidc-authenticator.js";
 export { OidcIdentityProviderPackBase } from "./pack/oidc-identity-provider-pack-base.js";
 export type { OidcPackOptions } from "./pack/oidc-identity-provider-pack-base.js";
+export { MicrosoftGraphDirectorySource } from "./directory/microsoft-graph-directory-source.js";
+export { UpstreamTokens, UpstreamTokenVault } from "./obo/upstream-token-vault.js";
+export { OnBehalfOfTokenProvider } from "./obo/on-behalf-of-token-provider.js";
+export type { OnBehalfOfTokenProviderOptions } from "./obo/on-behalf-of-token-provider.js";
+export { UnsupportedSourceTokenProvider } from "./obo/unsupported-source-token-provider.js";
 export { MicrosoftEntraProfile } from "./packs/microsoft-entra-profile.js";
 export { MicrosoftEntraPack } from "./packs/microsoft-entra-pack.js";
 export type { MicrosoftEntraPackOptions } from "./packs/microsoft-entra-pack.js";
