@@ -64,7 +64,7 @@ export abstract class OidcIdentityProviderPackBase implements IIdentityProviderP
         const discovery = new OidcDiscovery(opts.Http, opts.now);
         this.Discovery = discovery;
         const jwks = new JwksCache(opts.Http);
-        const claims = new ClaimsMapper(opts.Profile.DefaultClaimsMapping, opts.Profile.GroupStrategy, opts.Profile.SubjectClaim, s => opts.Profile.NormalizeSubject(s));
+        const claims = new ClaimsMapper(opts.Profile);
         const resolved = new OidcResolvedConfig(
             opts.Profile.ResolveDiscoveryUrl(settings),
             opts.Profile.ResolveIssuer(settings),

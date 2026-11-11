@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DelegationDepth, IdentityConfig, Tenant, TenantKind } from "@pragmatic-tech-ai/todl-identity";
+import { OidcProviderProfile } from "../../pack/oidc-provider-profile.js";
 import { ClaimsMapper } from "../claims-mapper.js";
 import { ClaimArrayGroupStrategy } from "../group-strategy.js";
 
@@ -15,7 +16,12 @@ class Fixture
 
     public static Mapper(): ClaimsMapper
     {
-        return new ClaimsMapper(new Map([["email", "email"]]), new ClaimArrayGroupStrategy("groups"));
+        return Fixture.MapperFor(new Map([["email", "email"]]));
+    }
+
+    public static MapperFor(defaults: ReadonlyMap<string, string>): ClaimsMapper
+    {
+        return new ClaimsMapper(new OidcProviderProfile([], defaults, new ClaimArrayGroupStrategy("groups"), "client_secret"));
     }
 }
 
@@ -49,9 +55,8 @@ test("missing or empty sub throws", () =>
 
 test("structured and null claim values are skipped, scalars coerced", () =>
 {
-    const mapper = new ClaimsMapper(
-        new Map([["email", "email"], ["role", "role"], ["age", "age"], ["admin", "admin"], ["nick", "nick"]]),
-        new ClaimArrayGroupStrategy("groups"));
+    const mapper = Fixture.MapperFor(
+        new Map([["email", "email"], ["role", "role"], ["age", "age"], ["admin", "admin"], ["nick", "nick"]]));
     const p = mapper.Map({ sub: "u1", email: { a: 1 }, role: ["x"], age: 42, admin: true, nick: null }, Fixture.Tenant, Fixture.Config(new Map()));
     assert.equal(p.Claim("email"), undefined);
     assert.equal(p.Claim("role"), undefined);

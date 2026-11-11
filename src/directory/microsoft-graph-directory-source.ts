@@ -74,7 +74,10 @@ export class MicrosoftGraphDirectorySource implements IIdpDirectorySource
         for (const requestedId of request.PrincipalIds)
         {
             const principalId = MicrosoftGraphDirectorySource.Normalize(requestedId);
-            MicrosoftGraphDirectorySource.Record(users, principalId, await this.StateOf(principalId, bearer));
+            const state = await this.StateOf(principalId, bearer);
+            // Consumers look ids up as written in the config, so the state is kept under the as-requested id and the lowercase form.
+            MicrosoftGraphDirectorySource.Record(users, requestedId, state);
+            MicrosoftGraphDirectorySource.Record(users, principalId, state);
         }
         return new IdpDirectorySnapshot(this.now(), this.Authoritative, users, groups);
     }

@@ -17,6 +17,7 @@ import { OidcResolvedConfig } from "../oidc-resolved-config.js";
 import { OidcDiscovery } from "../oidc-discovery.js";
 import { JwksCache } from "../jwks-cache.js";
 import { InMemoryOidcFlowStateStore } from "../flow-state-store.js";
+import { OidcProviderProfile } from "../../pack/oidc-provider-profile.js";
 import { ClaimsMapper } from "../../claims/claims-mapper.js";
 import { ClaimArrayGroupStrategy } from "../../claims/group-strategy.js";
 import { FakeOidcIdp, FakeOidcHttpClient } from "../../testing/fake-oidc-idp.js";
@@ -83,7 +84,7 @@ class Fixture
             Jwks: new JwksCache(http),
             FlowStates: store,
             Secrets: secrets,
-            Claims: new ClaimsMapper(new Map([["email", "email"]]), new ClaimArrayGroupStrategy("groups")),
+            Claims: new ClaimsMapper(new OidcProviderProfile([], new Map([["email", "email"]]), new ClaimArrayGroupStrategy("groups"), "client_secret")),
             Config: new IdentityConfig("pack", DelegationDepth.AuthnDirectory, new Map(), new Map(), new Map()),
             Resolved: resolved,
         });

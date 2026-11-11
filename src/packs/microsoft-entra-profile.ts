@@ -1,4 +1,5 @@
 import { ClaimArrayGroupStrategy } from "../claims/group-strategy.js";
+import { MicrosoftGraphDirectorySource } from "../directory/microsoft-graph-directory-source.js";
 import { OidcProviderProfile } from "../pack/oidc-provider-profile.js";
 import { OidcSettingKeys } from "../pack/oidc-setting-keys.js";
 
@@ -43,7 +44,7 @@ export class MicrosoftEntraProfile extends OidcProviderProfile
     /** The oid equals the Graph object id, which the directory source keys in lowercase. */
     public override NormalizeSubject(subject: string): string
     {
-        return subject.toLowerCase();
+        return MicrosoftGraphDirectorySource.Normalize(subject);
     }
 
     public override ResolveIssuer(settings: ReadonlyMap<string, string>): string

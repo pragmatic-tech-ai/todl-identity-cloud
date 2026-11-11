@@ -90,6 +90,7 @@ class Cases
             assert.ok(http.Bearers.every((b) => b === GraphHttp.AppToken));
 
             const mixed = await source.Snapshot(Fixture.Tenant(), new IdpDirectoryRequest([], ["ALICE"]));
+            assert.equal(mixed.StateOf("ALICE"), IdpUserState.Enabled);
             assert.equal(mixed.StateOf("alice"), IdpUserState.Enabled);
 
             http.FailUsersWith = 500;

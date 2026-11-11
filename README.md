@@ -8,7 +8,7 @@ The Entra pack exposes `DirectorySource`, an authoritative Microsoft Graph sourc
 group members (following `@odata.nextLink`) and user state (`accountEnabled`, 404 as deleted)
 with an app-only token. Any other Graph error rejects the whole snapshot, so a partial
 snapshot never deprovisions anyone. Entra principal ids are the `oid` claim, which equals the
-Graph object id. Every member of a linked group gets a state from its `accountEnabled`, so a
+Graph object id; Entra principal ids are lowercase object ids, and a config id in another case grants nothing. Every member of a linked group gets a state from its `accountEnabled`, so a
 disabled member reached only through a group loses its team rows and is deprovisioned. A
 disabled user who appears nowhere in the setting has no roles but keeps Default-Allow access to
 external (connector) concepts until their session expires.
