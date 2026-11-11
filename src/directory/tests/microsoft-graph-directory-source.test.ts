@@ -77,13 +77,15 @@ class Cases
         test("graph source maps enabled, disabled, deleted and pages group members", async () =>
         {
             const http = new GraphHttp();
+            http.PageTwo = [{ id: "bob", accountEnabled: true }, { id: "erin", accountEnabled: false }];
             const source = await Fixture.Source(http);
             const snapshot = await source.Snapshot(Fixture.Tenant(), new IdpDirectoryRequest(["hr-staff"], ["alice", "dana", "ghost"]));
             assert.equal(snapshot.Authoritative, true);
+            assert.equal(snapshot.StateOf("erin"), IdpUserState.Disabled);
             assert.equal(snapshot.StateOf("alice"), IdpUserState.Enabled);
             assert.equal(snapshot.StateOf("dana"), IdpUserState.Disabled);
             assert.equal(snapshot.StateOf("ghost"), IdpUserState.Deleted);
-            assert.deepEqual([...snapshot.MembersOf("hr-staff")], ["alice", "dana", "bob"]);
+            assert.deepEqual([...snapshot.MembersOf("hr-staff")], ["alice", "dana", "bob", "erin"]);
             assert.ok(http.Bearers.length >= 5);
             assert.ok(http.Bearers.every((b) => b === GraphHttp.AppToken));
 

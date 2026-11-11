@@ -36,6 +36,13 @@ export class MicrosoftGraphDirectorySource implements IIdpDirectorySource
     private static readonly ForeignLinkError = "Graph paging link left the Graph endpoint";
     private static readonly MalformedUserError = "Graph response was not a complete user record";
     private static readonly MalformedPageError = "Graph response was not a page of results";
+    private static readonly Strictness: Readonly<Record<IdpUserState, number>> =
+    {
+        [IdpUserState.Unknown]: 0,
+        [IdpUserState.Enabled]: 1,
+        [IdpUserState.Disabled]: 2,
+        [IdpUserState.Deleted]: 3,
+    };
 
     private readonly now: () => Date;
 
@@ -52,14 +59,21 @@ export class MicrosoftGraphDirectorySource implements IIdpDirectorySource
     {
         const bearer = await this.AppToken();
         const groups = new Map<string, readonly string[]>();
+        const users = new Map<string, IdpUserState>();
+        // Every group member gets a state from the accountEnabled already selected, so a member reached only through a
+        // linked group is never Unknown (active); a stricter state recorded for the same user always wins.
         for (const groupId of request.GroupIds)
         {
-            groups.set(groupId, await this.MembersOf(groupId, bearer));
+            const members = await this.MembersOf(groupId, bearer);
+            groups.set(groupId, members.map(m => m.id));
+            for (const member of members)
+            {
+                MicrosoftGraphDirectorySource.Record(users, member.id, member.accountEnabled ? IdpUserState.Enabled : IdpUserState.Disabled);
+            }
         }
-        const users = new Map<string, IdpUserState>();
         for (const principalId of request.PrincipalIds)
         {
-            users.set(principalId, await this.StateOf(principalId, bearer));
+            MicrosoftGraphDirectorySource.Record(users, principalId, await this.StateOf(principalId, bearer));
         }
         return new IdpDirectorySnapshot(this.now(), this.Authoritative, users, groups);
     }
@@ -83,9 +97,18 @@ export class MicrosoftGraphDirectorySource implements IIdpDirectorySource
         return token;
     }
 
-    private async MembersOf(groupId: string, bearer: string): Promise<string[]>
+    private static Record(users: Map<string, IdpUserState>, principalId: string, state: IdpUserState): void
     {
-        const members: string[] = [];
+        const current = users.get(principalId);
+        if (current === undefined || MicrosoftGraphDirectorySource.Strictness[state] > MicrosoftGraphDirectorySource.Strictness[current])
+        {
+            users.set(principalId, state);
+        }
+    }
+
+    private async MembersOf(groupId: string, bearer: string): Promise<{ id: string; accountEnabled: boolean }[]>
+    {
+        const members: { id: string; accountEnabled: boolean }[] = [];
         let next: string | null = this.GraphUrl(MicrosoftGraphDirectorySource.GroupMembersTemplate, groupId);
         let first = true;
         while (next !== null)
@@ -106,7 +129,7 @@ export class MicrosoftGraphDirectorySource implements IIdpDirectorySource
             if (!Array.isArray(items)) throw new Error(MicrosoftGraphDirectorySource.MalformedPageError);
             for (const item of items)
             {
-                members.push(this.RequireUser(item).id);
+                members.push(this.RequireUser(item));
             }
             const link = page?.[MicrosoftGraphDirectorySource.NextLinkField];
             next = typeof link === "string" ? this.RequireGraphLink(link) : null;

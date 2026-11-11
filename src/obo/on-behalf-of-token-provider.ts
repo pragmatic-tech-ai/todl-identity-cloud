@@ -45,6 +45,7 @@ export class OnBehalfOfTokenProvider implements ISourceTokenProvider
     private static readonly MsPerSecond = 1000;
 
     private readonly cache: PerUserSourceTokenCache;
+    private readonly refreshes = new Map<string, Promise<UpstreamTokens>>();
     private readonly now: () => Date;
 
     public constructor(private readonly opts: OnBehalfOfTokenProviderOptions)
@@ -55,7 +56,7 @@ export class OnBehalfOfTokenProvider implements ISourceTokenProvider
 
     public async Acquire(request: SourceTokenRequest): Promise<SourceToken>
     {
-        if (SystemPrincipal.IsId(request.PrincipalId))
+        if (SystemPrincipal.IsId(request.PrincipalId, request.TenantId))
         {
             throw new SourceTokenError(SourceTokenFailure.UnsupportedPrincipal);
         }
@@ -77,7 +78,7 @@ export class OnBehalfOfTokenProvider implements ISourceTokenProvider
                 {
                     throw new SourceTokenError(SourceTokenFailure.NoUpstreamSession);
                 }
-                tokens = await this.Refresh(request, tokens.RefreshToken);
+                tokens = await this.SharedRefresh(request, tokens.RefreshToken);
             }
             const token = await this.Exchange(request, tokens.AccessToken);
             this.cache.Put(request, token);
@@ -107,6 +108,22 @@ export class OnBehalfOfTokenProvider implements ISourceTokenProvider
         {
             return null;
         }
+    }
+
+    /** One in-flight refresh per (tenant, principal): concurrent callers share it, and it is cleared once it settles. */
+    private SharedRefresh(request: SourceTokenRequest, refreshToken: string): Promise<UpstreamTokens>
+    {
+        const key = JSON.stringify([request.TenantId, request.PrincipalId]);
+        let pending = this.refreshes.get(key);
+        if (pending === undefined)
+        {
+            const started = this.Refresh(request, refreshToken);
+            const clear = (): void => { if (this.refreshes.get(key) === started) this.refreshes.delete(key); };
+            started.then(clear, clear);
+            this.refreshes.set(key, started);
+            pending = started;
+        }
+        return pending;
     }
 
     private async Refresh(request: SourceTokenRequest, refreshToken: string): Promise<UpstreamTokens>
