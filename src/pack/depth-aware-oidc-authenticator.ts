@@ -54,12 +54,24 @@ export class DepthAwareOidcAuthenticator implements IAuthenticator
             catch (e)
             {
                 // The inner authenticator already stored the upstream tokens; a sign-in that does not complete must not keep them.
-                await this.vault?.Delete(tenant.Id, principal.Id);
+                await this.TryForget(tenant, principal.Id);
                 throw e;
             }
             return new AuthenticatedResult(principal);
         }
         return result;
+    }
+
+    private async TryForget(tenant: Tenant, principalId: string): Promise<void>
+    {
+        try
+        {
+            await this.vault?.Delete(tenant.Id, principalId);
+        }
+        catch
+        {
+            // The original failure is what the caller must see; the delete error is intentionally dropped (it is never logged).
+        }
     }
 
     private AdjustForDepth(principal: Principal): Principal
