@@ -140,6 +140,9 @@ class Cases
                 f.Provider.Acquire(Fixture.Request("nobody")),
                 (e: unknown) => e instanceof SourceTokenError && e.Failure === SourceTokenFailure.NoUpstreamSession);
             assert.equal(f.Http.Posts.length, 0);
+            await assert.rejects(
+                f.Provider.Acquire(new SourceTokenRequest("", "alice", Fixture.Resource)),
+                (e: unknown) => e instanceof SourceTokenError && e.Failure === SourceTokenFailure.UnsupportedPrincipal);
         });
 
         test("obo rejects an expired assertion with no refresh token and makes no POST", async () =>

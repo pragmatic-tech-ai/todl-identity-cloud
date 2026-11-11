@@ -65,14 +65,15 @@ export class MicrosoftGraphDirectorySource implements IIdpDirectorySource
         for (const groupId of request.GroupIds)
         {
             const members = await this.MembersOf(groupId, bearer);
-            groups.set(groupId, members.map(m => m.id));
+            groups.set(groupId, members.map(m => MicrosoftGraphDirectorySource.Normalize(m.id)));
             for (const member of members)
             {
-                MicrosoftGraphDirectorySource.Record(users, member.id, member.accountEnabled ? IdpUserState.Enabled : IdpUserState.Disabled);
+                MicrosoftGraphDirectorySource.Record(users, MicrosoftGraphDirectorySource.Normalize(member.id), member.accountEnabled ? IdpUserState.Enabled : IdpUserState.Disabled);
             }
         }
-        for (const principalId of request.PrincipalIds)
+        for (const requestedId of request.PrincipalIds)
         {
+            const principalId = MicrosoftGraphDirectorySource.Normalize(requestedId);
             MicrosoftGraphDirectorySource.Record(users, principalId, await this.StateOf(principalId, bearer));
         }
         return new IdpDirectorySnapshot(this.now(), this.Authoritative, users, groups);
@@ -95,6 +96,12 @@ export class MicrosoftGraphDirectorySource implements IIdpDirectorySource
         const token = response?.[MicrosoftGraphDirectorySource.AccessTokenField];
         if (typeof token !== "string" || token === "") throw new Error(MicrosoftGraphDirectorySource.NoTokenError);
         return token;
+    }
+
+    /** Graph object ids are GUIDs and case-insensitive; every id is keyed in lowercase so one user is one entry. */
+    public static Normalize(id: string): string
+    {
+        return id.toLowerCase();
     }
 
     private static Record(users: Map<string, IdpUserState>, principalId: string, state: IdpUserState): void
@@ -150,7 +157,7 @@ export class MicrosoftGraphDirectorySource implements IIdpDirectorySource
             throw e;
         }
         const user = this.RequireUser(response);
-        if (user.id.toLowerCase() !== principalId.toLowerCase()) throw new Error(MicrosoftGraphDirectorySource.MalformedUserError);
+        if (MicrosoftGraphDirectorySource.Normalize(user.id) !== principalId) throw new Error(MicrosoftGraphDirectorySource.MalformedUserError);
         return user.accountEnabled ? IdpUserState.Enabled : IdpUserState.Disabled;
     }
 

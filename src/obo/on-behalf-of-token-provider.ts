@@ -56,7 +56,7 @@ export class OnBehalfOfTokenProvider implements ISourceTokenProvider
 
     public async Acquire(request: SourceTokenRequest): Promise<SourceToken>
     {
-        if (SystemPrincipal.IsId(request.PrincipalId, request.TenantId))
+        if (request.TenantId === "" || SystemPrincipal.IsId(request.PrincipalId, request.TenantId))
         {
             throw new SourceTokenError(SourceTokenFailure.UnsupportedPrincipal);
         }

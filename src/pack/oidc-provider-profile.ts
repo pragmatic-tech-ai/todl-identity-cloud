@@ -17,6 +17,12 @@ export class OidcProviderProfile
     {
     }
 
+    /** Hook for providers whose subject ids are case-insensitive; the default keeps the subject as issued. */
+    public NormalizeSubject(subject: string): string
+    {
+        return subject;
+    }
+
     public ResolveIssuer(settings: ReadonlyMap<string, string>): string
     {
         const value = settings.get(OidcSettingKeys.Issuer);

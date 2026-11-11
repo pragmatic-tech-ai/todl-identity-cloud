@@ -10,7 +10,8 @@ export class ClaimsMapper
     public constructor(
         private readonly profileDefaults: ReadonlyMap<string, string>,
         private readonly groupStrategy: GroupStrategy,
-        private readonly subjectClaim: string = OidcProviderProfile.DefaultSubjectClaim)
+        private readonly subjectClaim: string = OidcProviderProfile.DefaultSubjectClaim,
+        private readonly normalizeSubject: (subject: string) => string = s => s)
     {
     }
 
@@ -39,6 +40,6 @@ export class ClaimsMapper
         }
 
         const groups = this.groupStrategy.GroupsFrom(payload);
-        return new Principal(sub, tenant.Id, PrincipalKind.User, claims, groups);
+        return new Principal(this.normalizeSubject(sub), tenant.Id, PrincipalKind.User, claims, groups);
     }
 }

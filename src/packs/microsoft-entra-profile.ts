@@ -40,6 +40,12 @@ export class MicrosoftEntraProfile extends OidcProviderProfile
             MicrosoftEntraProfile.OidClaim);
     }
 
+    /** The oid equals the Graph object id, which the directory source keys in lowercase. */
+    public override NormalizeSubject(subject: string): string
+    {
+        return subject.toLowerCase();
+    }
+
     public override ResolveIssuer(settings: ReadonlyMap<string, string>): string
     {
         const tenantId = settings.get(OidcSettingKeys.AadTenantId);
