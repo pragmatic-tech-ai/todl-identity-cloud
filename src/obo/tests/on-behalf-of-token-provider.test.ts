@@ -173,6 +173,28 @@ class Cases
             assert.ok(f.Cache.Get(Fixture.Request("alice"), new Date()));
             assert.ok(f.Cache.Get(Fixture.Request("bob"), new Date()));
         });
+
+        test("Forget drops the revoked user's cached token and leaves another user's untouched", async () =>
+        {
+            const f = await Fixture.Create();
+            const aliceAssertion = Fixture.Unsigned({ exp: 4_100_000_000, who: "alice" });
+            const bobAssertion = Fixture.Unsigned({ exp: 4_100_000_000, who: "bob" });
+            await f.Vault.Put(Fixture.Tenant, "alice", new UpstreamTokens(aliceAssertion, null));
+            await f.Vault.Put(Fixture.Tenant, "bob", new UpstreamTokens(bobAssertion, null));
+            await f.Provider.Acquire(Fixture.Request("alice"));
+            await f.Provider.Acquire(Fixture.Request("bob"));
+            assert.equal(f.Http.Posts.length, 2);
+
+            f.Provider.Forget(Fixture.Tenant, "alice");
+            assert.equal(f.Cache.Get(Fixture.Request("alice"), new Date()), undefined);
+            assert.ok(f.Cache.Get(Fixture.Request("bob"), new Date()));
+
+            // alice re-fetches (cache miss → a new exchange), bob stays served from cache (no new POST)
+            await f.Provider.Acquire(Fixture.Request("alice"));
+            assert.equal(f.Http.Posts.length, 3);
+            await f.Provider.Acquire(Fixture.Request("bob"));
+            assert.equal(f.Http.Posts.length, 3);
+        });
     }
 }
 

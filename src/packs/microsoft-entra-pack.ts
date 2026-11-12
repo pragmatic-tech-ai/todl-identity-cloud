@@ -5,7 +5,8 @@ import { MicrosoftGraphDirectorySource } from "../directory/microsoft-graph-dire
 import { UpstreamTokenVault } from "../obo/upstream-token-vault.js";
 import { OnBehalfOfTokenProvider } from "../obo/on-behalf-of-token-provider.js";
 import { UnsupportedSourceTokenProvider } from "../obo/unsupported-source-token-provider.js";
-import type { IIdpDirectorySource, ISourceTokenProvider } from "@pragmatic-tech-ai/todl-identity";
+import type { IIdpDirectorySource } from "@pragmatic-tech-ai/todl-identity";
+import type { IRevocableSourceTokenProvider } from "../obo/revocable-source-token-provider.js";
 import { MicrosoftEntraProfile } from "./microsoft-entra-profile.js";
 
 export type MicrosoftEntraPackOptions = Omit<OidcPackOptions, "Profile" | "Vault">;
@@ -17,7 +18,7 @@ export type MicrosoftEntraPackOptions = Omit<OidcPackOptions, "Profile" | "Vault
 export class MicrosoftEntraPack extends OidcIdentityProviderPackBase
 {
     public readonly DirectorySource: IIdpDirectorySource;
-    public readonly SourceTokens: ISourceTokenProvider;
+    public readonly SourceTokens: IRevocableSourceTokenProvider;
 
     private constructor(opts: OidcPackOptions)
     {

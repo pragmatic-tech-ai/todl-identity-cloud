@@ -31,6 +31,7 @@ export { UpstreamTokens, UpstreamTokenVault } from "./obo/upstream-token-vault.j
 export { OnBehalfOfTokenProvider } from "./obo/on-behalf-of-token-provider.js";
 export type { OnBehalfOfTokenProviderOptions } from "./obo/on-behalf-of-token-provider.js";
 export { UnsupportedSourceTokenProvider } from "./obo/unsupported-source-token-provider.js";
+export type { IRevocableSourceTokenProvider } from "./obo/revocable-source-token-provider.js";
 export { MicrosoftEntraProfile } from "./packs/microsoft-entra-profile.js";
 export { MicrosoftEntraPack } from "./packs/microsoft-entra-pack.js";
 export type { MicrosoftEntraPackOptions } from "./packs/microsoft-entra-pack.js";

@@ -7,7 +7,8 @@ import {
     SourceTokenFailure,
     SystemPrincipal,
 } from "@pragmatic-tech-ai/todl-identity";
-import type { ISecretStore, ISourceTokenProvider, SourceTokenRequest } from "@pragmatic-tech-ai/todl-identity";
+import type { ISecretStore, SourceTokenRequest } from "@pragmatic-tech-ai/todl-identity";
+import type { IRevocableSourceTokenProvider } from "./revocable-source-token-provider.js";
 import type { IHttpClient } from "../http/http-client.js";
 import type { OidcDiscovery } from "../oidc/oidc-discovery.js";
 import type { OidcResolvedConfig } from "../oidc/oidc-resolved-config.js";
@@ -26,7 +27,7 @@ export interface OnBehalfOfTokenProviderOptions
     now?: () => Date;
 }
 
-export class OnBehalfOfTokenProvider implements ISourceTokenProvider
+export class OnBehalfOfTokenProvider implements IRevocableSourceTokenProvider
 {
     private static readonly SkewMs = 60_000;
     private static readonly GrantTypeParam = "grant_type";
@@ -91,6 +92,17 @@ export class OnBehalfOfTokenProvider implements ISourceTokenProvider
         }
     }
 
+    /**
+     * Drops `principalId`'s cached exchanged token in `tenantId` and any in-flight refresh for that user (R34): the
+     * next Acquire for that user re-fetches (cache miss). Keyed exactly as Put/Get/SharedRefresh, so no other user is
+     * touched. The server's CallerCredentials.Revoke reaches this at deprovisioning and sign-out.
+     */
+    public Forget(tenantId: string, principalId: string): void
+    {
+        this.cache.Forget(tenantId, principalId);
+        this.refreshes.delete(OnBehalfOfTokenProvider.RefreshKey(tenantId, principalId));
+    }
+
     private IsExpiring(assertion: string): boolean
     {
         const exp = this.ExpiryOf(assertion);
@@ -113,7 +125,7 @@ export class OnBehalfOfTokenProvider implements ISourceTokenProvider
     /** One in-flight refresh per (tenant, principal): concurrent callers share it, and it is cleared once it settles. */
     private SharedRefresh(request: SourceTokenRequest, refreshToken: string): Promise<UpstreamTokens>
     {
-        const key = JSON.stringify([request.TenantId, request.PrincipalId]);
+        const key = OnBehalfOfTokenProvider.RefreshKey(request.TenantId, request.PrincipalId);
         let pending = this.refreshes.get(key);
         if (pending === undefined)
         {
@@ -170,6 +182,12 @@ export class OnBehalfOfTokenProvider implements ISourceTokenProvider
         fields.set(OnBehalfOfTokenProvider.ClientIdParam, resolved.ClientId);
         fields.set(OnBehalfOfTokenProvider.ClientSecretParam, secret);
         return fields;
+    }
+
+    /** The (tenant, principal) key for the in-flight refresh map, shared by SharedRefresh and Forget. */
+    private static RefreshKey(tenantId: string, principalId: string): string
+    {
+        return JSON.stringify([tenantId, principalId]);
     }
 
     private async PostToken(fields: ReadonlyMap<string, string>): Promise<Record<string, unknown>>
