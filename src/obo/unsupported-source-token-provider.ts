@@ -11,7 +11,7 @@ export class UnsupportedSourceTokenProvider implements IRevocableSourceTokenProv
     }
 
     /** Nothing is cached, so there is nothing to forget. */
-    public Forget(_tenantId: string, _principalId: string): void
+    public Forget(_realmId: string, _principalId: string): void
     {
     }
 }

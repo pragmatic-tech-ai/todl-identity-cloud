@@ -1,13 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DelegationDepth, IdentityConfig, Tenant, TenantKind } from "@pragmatic-tech-ai/todl-identity";
+import { DelegationDepth, IdentityConfig, Realm, RealmKind } from "@pragmatic-tech-ai/todl-identity";
 import { OidcProviderProfile } from "../../pack/oidc-provider-profile.js";
 import { ClaimsMapper } from "../claims-mapper.js";
 import { ClaimArrayGroupStrategy } from "../group-strategy.js";
 
 class Fixture
 {
-    public static readonly Tenant = new Tenant("t1", TenantKind.Saas, "Acme");
+    public static readonly Realm = new Realm("t1", RealmKind.Saas, "Acme");
 
     public static Config(mapping: Map<string, string>): IdentityConfig
     {
@@ -27,37 +27,37 @@ class Fixture
 
 test("maps sub, claims and groups", () =>
 {
-    const p = Fixture.Mapper().Map({ sub: "u1", email: "a@x.io", groups: ["g1", "g2"] }, Fixture.Tenant, Fixture.Config(new Map()));
+    const p = Fixture.Mapper().Map({ sub: "u1", email: "a@x.io", groups: ["g1", "g2"] }, Fixture.Realm, Fixture.Config(new Map()));
     assert.equal(p.Id, "u1");
     assert.equal(p.Claim("email"), "a@x.io");
     assert.deepEqual(p.Groups, ["g1", "g2"]);
 });
 
-test("per-tenant ClaimsMapping overrides defaults", () =>
+test("per-realm ClaimsMapping overrides defaults", () =>
 {
     const config = Fixture.Config(new Map([["email", "preferred_username"]]));
-    const p = Fixture.Mapper().Map({ sub: "u1", email: "a@x.io", preferred_username: "bob@x.io", groups: [] }, Fixture.Tenant, config);
+    const p = Fixture.Mapper().Map({ sub: "u1", email: "a@x.io", preferred_username: "bob@x.io", groups: [] }, Fixture.Realm, config);
     assert.equal(p.Claim("email"), "bob@x.io");
 });
 
 test("non-array groups claim yields no groups", () =>
 {
-    const p = Fixture.Mapper().Map({ sub: "u1", groups: "nope" }, Fixture.Tenant, Fixture.Config(new Map()));
+    const p = Fixture.Mapper().Map({ sub: "u1", groups: "nope" }, Fixture.Realm, Fixture.Config(new Map()));
     assert.deepEqual(p.Groups, []);
 });
 
 test("missing or empty sub throws", () =>
 {
     const config = Fixture.Config(new Map());
-    assert.throws(() => Fixture.Mapper().Map({ email: "a@x.io" }, Fixture.Tenant, config));
-    assert.throws(() => Fixture.Mapper().Map({ sub: "" }, Fixture.Tenant, config));
+    assert.throws(() => Fixture.Mapper().Map({ email: "a@x.io" }, Fixture.Realm, config));
+    assert.throws(() => Fixture.Mapper().Map({ sub: "" }, Fixture.Realm, config));
 });
 
 test("structured and null claim values are skipped, scalars coerced", () =>
 {
     const mapper = Fixture.MapperFor(
         new Map([["email", "email"], ["role", "role"], ["age", "age"], ["admin", "admin"], ["nick", "nick"]]));
-    const p = mapper.Map({ sub: "u1", email: { a: 1 }, role: ["x"], age: 42, admin: true, nick: null }, Fixture.Tenant, Fixture.Config(new Map()));
+    const p = mapper.Map({ sub: "u1", email: { a: 1 }, role: ["x"], age: 42, admin: true, nick: null }, Fixture.Realm, Fixture.Config(new Map()));
     assert.equal(p.Claim("email"), undefined);
     assert.equal(p.Claim("role"), undefined);
     assert.equal(p.Claim("nick"), undefined);

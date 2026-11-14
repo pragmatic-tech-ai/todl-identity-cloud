@@ -16,11 +16,11 @@ class Golden
     {
         test(Golden.OidTestName, async () =>
         {
-            const { pack, tenant, State } = await EntraFixture.EntraFlow(DelegationDepth.ExternalGrants);
+            const { pack, realm, State } = await EntraFixture.EntraFlow(DelegationDepth.ExternalGrants);
             const result = await pack.AuthenticatorFor(AuthMethod.Oidc)!.Authenticate(
                 new Credential(AuthMethod.Oidc, State),
                 new PresentedSecret(EntraFixture.AuthCode),
-                tenant);
+                realm);
             assert.ok(result instanceof AuthenticatedResult);
             const principal = (result as AuthenticatedResult).Principal;
             assert.equal(principal.Id, EntraFixture.Subject);
@@ -29,24 +29,24 @@ class Golden
 
         test(Golden.VaultTestName, async () =>
         {
-            const { pack, tenant, State, secrets } = await EntraFixture.EntraFlow(DelegationDepth.ExternalGrants, new Map(), EntraFixture.ApiScope);
+            const { pack, realm, State, secrets } = await EntraFixture.EntraFlow(DelegationDepth.ExternalGrants, new Map(), EntraFixture.ApiScope);
             const result = await pack.AuthenticatorFor(AuthMethod.Oidc)!.Authenticate(
                 new Credential(AuthMethod.Oidc, State),
                 new PresentedSecret(EntraFixture.AuthCode),
-                tenant);
+                realm);
             assert.ok(result instanceof AuthenticatedResult);
-            const stored = await new UpstreamTokenVault(secrets).Get(EntraFixture.TenantId, EntraFixture.Subject);
+            const stored = await new UpstreamTokenVault(secrets).Get(EntraFixture.RealmId, EntraFixture.Subject);
             assert.equal(stored?.AccessToken, FakeOidcIdp.AccessToken);
             assert.equal(stored?.RefreshToken, FakeOidcIdp.RefreshToken);
         });
 
         test(Golden.TestName, async () =>
         {
-            const { pack, tenant, State, audit, idToken } = await EntraFixture.EntraFlow(DelegationDepth.ExternalGrants);
+            const { pack, realm, State, audit, idToken } = await EntraFixture.EntraFlow(DelegationDepth.ExternalGrants);
             const result = await pack.AuthenticatorFor(AuthMethod.Oidc)!.Authenticate(
                 new Credential(AuthMethod.Oidc, State),
                 new PresentedSecret(EntraFixture.AuthCode),
-                tenant);
+                realm);
             assert.ok(result instanceof AuthenticatedResult);
             const principal = (result as AuthenticatedResult).Principal;
             assert.equal(principal.Id, EntraFixture.Subject);

@@ -6,7 +6,7 @@ import type {
     IAuthenticator,
     IdentityConfig,
     PresentedSecret,
-    Tenant,
+    Realm,
 } from "@pragmatic-tech-ai/todl-identity";
 import type { UpstreamTokenVault } from "../obo/upstream-token-vault.js";
 import type { OidcAuthenticator } from "../oidc/oidc-authenticator.js";
@@ -31,14 +31,14 @@ export class DepthAwareOidcAuthenticator implements IAuthenticator
     {
     }
 
-    public BeginAuthorization(tenant: Tenant): Promise<{ Url: string; State: string }>
+    public BeginAuthorization(realm: Realm): Promise<{ Url: string; State: string }>
     {
-        return this.inner.BeginAuthorization(tenant);
+        return this.inner.BeginAuthorization(realm);
     }
 
-    public async Authenticate(credential: Credential, presented: PresentedSecret, tenant: Tenant): Promise<AuthenticationResult>
+    public async Authenticate(credential: Credential, presented: PresentedSecret, realm: Realm): Promise<AuthenticationResult>
     {
-        const result = await this.inner.Authenticate(credential, presented, tenant);
+        const result = await this.inner.Authenticate(credential, presented, realm);
         if (result instanceof AuthenticatedResult)
         {
             const principal = this.AdjustForDepth(result.Principal);
@@ -47,14 +47,14 @@ export class DepthAwareOidcAuthenticator implements IAuthenticator
                 this.directory.Remember(principal);
                 if (this.config.DelegationDepth === DelegationDepth.ExternalGrants)
                 {
-                    await this.groupRoleMapper.ApplyGroups(principal, tenant, this.config.GroupRoleMap);
+                    await this.groupRoleMapper.ApplyGroups(principal, realm, this.config.GroupRoleMap);
                 }
-                await this.RecordAuth(tenant, principal.Id);
+                await this.RecordAuth(realm, principal.Id);
             }
             catch (e)
             {
                 // The inner authenticator already stored the upstream tokens; a sign-in that does not complete must not keep them.
-                await this.TryForget(tenant, principal.Id);
+                await this.TryForget(realm, principal.Id);
                 throw e;
             }
             return new AuthenticatedResult(principal);
@@ -62,11 +62,11 @@ export class DepthAwareOidcAuthenticator implements IAuthenticator
         return result;
     }
 
-    private async TryForget(tenant: Tenant, principalId: string): Promise<void>
+    private async TryForget(realm: Realm, principalId: string): Promise<void>
     {
         try
         {
-            await this.vault?.Delete(tenant.Id, principalId);
+            await this.vault?.Delete(realm.Id, principalId);
         }
         catch
         {
@@ -78,14 +78,14 @@ export class DepthAwareOidcAuthenticator implements IAuthenticator
     {
         if (this.config.DelegationDepth === DelegationDepth.AuthnDirectory)
         {
-            return new Principal(principal.Id, principal.TenantId, principal.Kind, principal.Claims, []);
+            return new Principal(principal.Id, principal.RealmId, principal.Kind, principal.Claims, []);
         }
         return principal;
     }
 
-    private async RecordAuth(tenant: Tenant, principalId: string): Promise<void>
+    private async RecordAuth(realm: Realm, principalId: string): Promise<void>
     {
         const detail = new Map([[DepthAwareOidcAuthenticator.MethodDetailKey, DepthAwareOidcAuthenticator.OidcMethodValue]]);
-        await this.audit.Record(new AuditEvent(AuditEventKind.Authentication, tenant.Id, principalId, this.now(), detail));
+        await this.audit.Record(new AuditEvent(AuditEventKind.Authentication, realm.Id, principalId, this.now(), detail));
     }
 }

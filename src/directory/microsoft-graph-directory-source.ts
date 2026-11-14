@@ -1,5 +1,5 @@
 import { IdpDirectorySnapshot, IdpUserState } from "@pragmatic-tech-ai/todl-identity";
-import type { IdpDirectoryRequest, IIdpDirectorySource, ISecretStore, Tenant } from "@pragmatic-tech-ai/todl-identity";
+import type { IdpDirectoryRequest, IIdpDirectorySource, ISecretStore, Realm } from "@pragmatic-tech-ai/todl-identity";
 import type { IHttpClient } from "../http/http-client.js";
 import { HttpStatusError } from "../http/http-status-error.js";
 import { OidcSettingKeys } from "../pack/oidc-setting-keys.js";
@@ -55,7 +55,7 @@ export class MicrosoftGraphDirectorySource implements IIdpDirectorySource
         this.now = now ?? (() => new Date());
     }
 
-    public async Snapshot(_tenant: Tenant, request: IdpDirectoryRequest): Promise<IdpDirectorySnapshot>
+    public async Snapshot(_realm: Realm, request: IdpDirectoryRequest): Promise<IdpDirectorySnapshot>
     {
         const bearer = await this.AppToken();
         const groups = new Map<string, readonly string[]>();

@@ -1,4 +1,4 @@
-import { DelegationDepth, IdentityConfig, Tenant, TenantKind } from "@pragmatic-tech-ai/todl-identity";
+import { DelegationDepth, IdentityConfig, Realm, RealmKind } from "@pragmatic-tech-ai/todl-identity";
 import { FakeAuditSink, FakeRoleGrantStore, FakeSessionManager } from "@pragmatic-tech-ai/todl-identity/testing";
 import { GoogleIdentityPack } from "../google-identity-pack.js";
 import { GoogleIdentityProfile } from "../google-identity-profile.js";
@@ -13,8 +13,8 @@ export class GoogleFixture
     public static readonly ClientId = "client-1";
     public static readonly RedirectUri = "https://app.test/cb";
     public static readonly ConfigPackId = "google";
-    public static readonly TenantId = "t1";
-    public static readonly TenantName = "Acme";
+    public static readonly RealmId = "t1";
+    public static readonly RealmName = "Acme";
     public static readonly AuthCode = "auth-code";
     public static readonly BearerType = "Bearer";
     public static readonly SubHd = "u1";
@@ -32,9 +32,9 @@ export class GoogleFixture
         ]);
     }
 
-    public static Tenant(): Tenant
+    public static Realm(): Realm
     {
-        return new Tenant(GoogleFixture.TenantId, TenantKind.Saas, GoogleFixture.TenantName);
+        return new Realm(GoogleFixture.RealmId, RealmKind.Saas, GoogleFixture.RealmName);
     }
 
     /** Begins authorization, mints an id_token echoing the nonce plus extra claims, and primes the fake token endpoint. */
@@ -57,11 +57,11 @@ export class GoogleFixture
             Grants: new FakeRoleGrantStore(),
             Audit: audit,
         });
-        const tenant = GoogleFixture.Tenant();
-        const { State } = await pack.BeginAuthorization(tenant);
+        const realm = GoogleFixture.Realm();
+        const { State } = await pack.BeginAuthorization(realm);
         const nonce = flowStates.Peek(State)!.Nonce;
         const idToken = await idp.MintIdToken({ aud: GoogleFixture.ClientId, nonce, ...extraClaims }, mint);
         http.NextTokenResponse = { id_token: idToken, token_type: GoogleFixture.BearerType };
-        return { pack, tenant, audit, State, idToken };
+        return { pack, realm, audit, State, idToken };
     }
 }

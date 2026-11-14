@@ -1,4 +1,4 @@
-import { DelegationDepth, IdentityConfig, Tenant, TenantKind } from "@pragmatic-tech-ai/todl-identity";
+import { DelegationDepth, IdentityConfig, Realm, RealmKind } from "@pragmatic-tech-ai/todl-identity";
 import type { ISecretStore, Role } from "@pragmatic-tech-ai/todl-identity";
 import { FakeAuditSink, FakeRoleGrantStore, FakeSessionManager } from "@pragmatic-tech-ai/todl-identity/testing";
 import { MicrosoftEntraPack } from "../microsoft-entra-pack.js";
@@ -33,8 +33,8 @@ export class EntraFixture
     public static readonly ClientId = "client-1";
     public static readonly RedirectUri = "https://app.test/cb";
     public static readonly ConfigPackId = "entra";
-    public static readonly TenantId = "t1";
-    public static readonly TenantName = "Acme";
+    public static readonly RealmId = "t1";
+    public static readonly RealmName = "Acme";
     public static readonly Subject = "oid-u1";
     public static readonly SubClaimValue = "sub-u1";
     public static readonly ApiScope = "api://app/access";
@@ -51,9 +51,9 @@ export class EntraFixture
         ]);
     }
 
-    public static Tenant(): Tenant
+    public static Realm(): Realm
     {
-        return new Tenant(EntraFixture.TenantId, TenantKind.Saas, EntraFixture.TenantName);
+        return new Realm(EntraFixture.RealmId, RealmKind.Saas, EntraFixture.RealmName);
     }
 
     public static async EntraFlow(
@@ -80,8 +80,8 @@ export class EntraFixture
             Grants: grants,
             Audit: audit,
         });
-        const tenant = EntraFixture.Tenant();
-        const { State } = await pack.BeginAuthorization(tenant);
+        const realm = EntraFixture.Realm();
+        const { State } = await pack.BeginAuthorization(realm);
         const nonce = flowStates.Peek(State)!.Nonce;
         const idToken = await idp.MintIdToken({
             sub: EntraFixture.SubClaimValue,
@@ -92,6 +92,6 @@ export class EntraFixture
             groups: [EntraFixture.Group],
         });
         http.NextTokenResponse = idp.TokenResponse(idToken);
-        return { pack, secrets, tenant, http, audit, sessions, grants, State, idp, idToken };
+        return { pack, secrets, realm, http, audit, sessions, grants, State, idp, idToken };
     }
 }

@@ -57,7 +57,7 @@ export class OnBehalfOfTokenProvider implements IRevocableSourceTokenProvider
 
     public async Acquire(request: SourceTokenRequest): Promise<SourceToken>
     {
-        if (request.TenantId === "" || SystemPrincipal.IsId(request.PrincipalId, request.TenantId))
+        if (request.RealmId === "" || SystemPrincipal.IsId(request.PrincipalId, request.RealmId))
         {
             throw new SourceTokenError(SourceTokenFailure.UnsupportedPrincipal);
         }
@@ -65,7 +65,7 @@ export class OnBehalfOfTokenProvider implements IRevocableSourceTokenProvider
         const cached = this.cache.Get(request, this.now());
         if (cached !== undefined) return cached;
 
-        let tokens = await this.opts.Vault.Get(request.TenantId, request.PrincipalId);
+        let tokens = await this.opts.Vault.Get(request.RealmId, request.PrincipalId);
         if (tokens === null)
         {
             throw new SourceTokenError(SourceTokenFailure.NoUpstreamSession);
@@ -93,14 +93,14 @@ export class OnBehalfOfTokenProvider implements IRevocableSourceTokenProvider
     }
 
     /**
-     * Drops `principalId`'s cached exchanged token in `tenantId` and any in-flight refresh for that user (R34): the
+     * Drops `principalId`'s cached exchanged token in `realmId` and any in-flight refresh for that user (R34): the
      * next Acquire for that user re-fetches (cache miss). Keyed exactly as Put/Get/SharedRefresh, so no other user is
      * touched. The server's CallerCredentials.Revoke reaches this at deprovisioning and sign-out.
      */
-    public Forget(tenantId: string, principalId: string): void
+    public Forget(realmId: string, principalId: string): void
     {
-        this.cache.Forget(tenantId, principalId);
-        this.refreshes.delete(OnBehalfOfTokenProvider.RefreshKey(tenantId, principalId));
+        this.cache.Forget(realmId, principalId);
+        this.refreshes.delete(OnBehalfOfTokenProvider.RefreshKey(realmId, principalId));
     }
 
     private IsExpiring(assertion: string): boolean
@@ -122,10 +122,10 @@ export class OnBehalfOfTokenProvider implements IRevocableSourceTokenProvider
         }
     }
 
-    /** One in-flight refresh per (tenant, principal): concurrent callers share it, and it is cleared once it settles. */
+    /** One in-flight refresh per (realm, principal): concurrent callers share it, and it is cleared once it settles. */
     private SharedRefresh(request: SourceTokenRequest, refreshToken: string): Promise<UpstreamTokens>
     {
-        const key = OnBehalfOfTokenProvider.RefreshKey(request.TenantId, request.PrincipalId);
+        const key = OnBehalfOfTokenProvider.RefreshKey(request.RealmId, request.PrincipalId);
         let pending = this.refreshes.get(key);
         if (pending === undefined)
         {
@@ -149,7 +149,7 @@ export class OnBehalfOfTokenProvider implements IRevocableSourceTokenProvider
         if (typeof access !== "string") throw new SourceTokenError(SourceTokenFailure.ExchangeRejected);
         const next = response[OnBehalfOfTokenProvider.RefreshTokenField];
         const refreshed = new UpstreamTokens(access, typeof next === "string" ? next : refreshToken);
-        await this.opts.Vault.Put(request.TenantId, request.PrincipalId, refreshed);
+        await this.opts.Vault.Put(request.RealmId, request.PrincipalId, refreshed);
         return refreshed;
     }
 
@@ -184,10 +184,10 @@ export class OnBehalfOfTokenProvider implements IRevocableSourceTokenProvider
         return fields;
     }
 
-    /** The (tenant, principal) key for the in-flight refresh map, shared by SharedRefresh and Forget. */
-    private static RefreshKey(tenantId: string, principalId: string): string
+    /** The (realm, principal) key for the in-flight refresh map, shared by SharedRefresh and Forget. */
+    private static RefreshKey(realmId: string, principalId: string): string
     {
-        return JSON.stringify([tenantId, principalId]);
+        return JSON.stringify([realmId, principalId]);
     }
 
     private async PostToken(fields: ReadonlyMap<string, string>): Promise<Record<string, unknown>>

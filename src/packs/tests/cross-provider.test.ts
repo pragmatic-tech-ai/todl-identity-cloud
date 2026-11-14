@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { AuthenticationResult } from "@pragmatic-tech-ai/todl-identity";
-import { AuthMethod, AuthenticatedResult, Credential, DelegationDepth, IdentityConfig, PresentedSecret, RejectedResult, Tenant, TenantKind } from "@pragmatic-tech-ai/todl-identity";
+import { AuthMethod, AuthenticatedResult, Credential, DelegationDepth, IdentityConfig, PresentedSecret, RejectedResult, Realm, RealmKind } from "@pragmatic-tech-ai/todl-identity";
 import { FakeAuditSink, FakeRoleGrantStore, FakeSessionManager } from "@pragmatic-tech-ai/todl-identity/testing";
 import { MicrosoftEntraProfile } from "../microsoft-entra-profile.js";
 import { GoogleIdentityProfile } from "../google-identity-profile.js";
@@ -15,16 +15,16 @@ import { MapSecretStore } from "./entra-fixture.js";
 class Fixture
 {
     public static readonly GoogleIssuer = GoogleIdentityProfile.GoogleIssuer;
-    public static readonly TenantIdValue = "test-tid";
-    public static readonly EntraIssuer = new MicrosoftEntraProfile().ResolveIssuer(new Map([[OidcSettingKeys.AadTenantId, Fixture.TenantIdValue]]));
+    public static readonly AadTenantIdValue = "test-tid";
+    public static readonly EntraIssuer = new MicrosoftEntraProfile().ResolveIssuer(new Map([[OidcSettingKeys.AadTenantId, Fixture.AadTenantIdValue]]));
     public static readonly ClientId = "client-1";
     public static readonly RedirectUri = "https://app.test/cb";
     public static readonly EntraPackId = "entra";
     public static readonly GooglePackId = "google";
     public static readonly Subject = "u1";
     public static readonly AuthCode = "code";
-    public static readonly TenantRef = "t1";
-    public static readonly TenantName = "Acme";
+    public static readonly RealmRef = "t1";
+    public static readonly RealmName = "Acme";
     public static readonly EntraTokenName = "cross-provider: Entra-minted token is rejected by the Google pack";
     public static readonly PositiveControlName = "cross-provider control: a token from the pack own IdP authenticates";
     public static readonly GoogleTokenName = "cross-provider: Google-minted token is rejected by the Entra pack";
@@ -38,7 +38,7 @@ class Fixture
         public readonly HttpB: FakeOidcHttpClient,
         public readonly FlowStatesB: InMemoryOidcFlowStateStore,
         public readonly GooglePack: GoogleIdentityPack,
-        public readonly TenantValue: Tenant)
+        public readonly RealmValue: Realm)
     {
     }
 
@@ -48,7 +48,7 @@ class Fixture
         const httpA = new FakeOidcHttpClient(idpA);
         const flowStatesA = new InMemoryOidcFlowStateStore();
         const entraSettings = new Map([
-            [OidcSettingKeys.AadTenantId, Fixture.TenantIdValue],
+            [OidcSettingKeys.AadTenantId, Fixture.AadTenantIdValue],
             [OidcSettingKeys.ClientId, Fixture.ClientId],
             [OidcSettingKeys.RedirectUri, Fixture.RedirectUri],
         ]);
@@ -77,8 +77,8 @@ class Fixture
             Grants: new FakeRoleGrantStore(),
             Audit: new FakeAuditSink(),
         });
-        const tenant = new Tenant(Fixture.TenantRef, TenantKind.Saas, Fixture.TenantName);
-        return new Fixture(idpA, httpA, flowStatesA, entraPack, idpB, httpB, flowStatesB, googlePack, tenant);
+        const realm = new Realm(Fixture.RealmRef, RealmKind.Saas, Fixture.RealmName);
+        return new Fixture(idpA, httpA, flowStatesA, entraPack, idpB, httpB, flowStatesB, googlePack, realm);
     }
 
     /** Begins a real authorization on the pack (valid state + nonce), then answers with a token minted by the foreign IdP. */
@@ -88,13 +88,13 @@ class Fixture
         http: FakeOidcHttpClient,
         foreignIdp: FakeOidcIdp): Promise<AuthenticationResult>
     {
-        const { State } = await pack.BeginAuthorization(this.TenantValue);
+        const { State } = await pack.BeginAuthorization(this.RealmValue);
         const nonce = flowStates.Peek(State)!.Nonce;
         http.NextTokenResponse = { id_token: await foreignIdp.MintIdToken({ sub: Fixture.Subject, aud: Fixture.ClientId, nonce }) };
         return await pack.AuthenticatorFor(AuthMethod.Oidc)!.Authenticate(
             new Credential(AuthMethod.Oidc, State),
             new PresentedSecret(Fixture.AuthCode),
-            this.TenantValue);
+            this.RealmValue);
     }
 }
 

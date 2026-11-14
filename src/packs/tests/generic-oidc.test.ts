@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { AuthMethod, AuthenticatedResult, Credential, DelegationDepth, IdentityConfig, PresentedSecret, Tenant, TenantKind } from "@pragmatic-tech-ai/todl-identity";
+import { AuthMethod, AuthenticatedResult, Credential, DelegationDepth, IdentityConfig, PresentedSecret, Realm, RealmKind } from "@pragmatic-tech-ai/todl-identity";
 import { FakeAuditSink, FakeRoleGrantStore, FakeSessionManager } from "@pragmatic-tech-ai/todl-identity/testing";
 import { GenericOidcPack } from "../generic-oidc-pack.js";
 import { GenericOidcProfile } from "../generic-oidc-profile.js";
@@ -22,8 +22,8 @@ class Fixture
     public static readonly Email = "a@x.io";
     public static readonly Role = "r1";
     public static readonly AuthCode = "code";
-    public static readonly TenantRef = "t1";
-    public static readonly TenantName = "Acme";
+    public static readonly RealmRef = "t1";
+    public static readonly RealmName = "Acme";
     public static readonly GoldenName = "generic OIDC: a profile-only provider authenticates and maps groups from the roles claim";
 }
 
@@ -56,8 +56,8 @@ class GenericOidcTests
                 Grants: new FakeRoleGrantStore(),
                 Audit: new FakeAuditSink(),
             });
-            const tenant = new Tenant(Fixture.TenantRef, TenantKind.Saas, Fixture.TenantName);
-            const { State } = await pack.BeginAuthorization(tenant);
+            const realm = new Realm(Fixture.RealmRef, RealmKind.Saas, Fixture.RealmName);
+            const { State } = await pack.BeginAuthorization(realm);
             const nonce = flowStates.Peek(State)!.Nonce;
             http.NextTokenResponse = {
                 id_token: await idp.MintIdToken({
@@ -71,7 +71,7 @@ class GenericOidcTests
             const result = await pack.AuthenticatorFor(AuthMethod.Oidc)!.Authenticate(
                 new Credential(AuthMethod.Oidc, State),
                 new PresentedSecret(Fixture.AuthCode),
-                tenant);
+                realm);
             assert.ok(result instanceof AuthenticatedResult);
             const principal = (result as AuthenticatedResult).Principal;
             assert.equal(principal.Id, Fixture.Subject);

@@ -8,8 +8,8 @@ import {
     IdentityConfig,
     PresentedSecret,
     RejectedResult,
-    Tenant,
-    TenantKind,
+    Realm,
+    RealmKind,
 } from "@pragmatic-tech-ai/todl-identity";
 import type { AuthenticationResult, ISecretStore } from "@pragmatic-tech-ai/todl-identity";
 import { OidcAuthenticator } from "../oidc-authenticator.js";
@@ -59,7 +59,7 @@ class Fixture
     public static readonly SecretRef = "secret-ref";
     public static readonly SecretValue = "s3cr3t-value-xyz";
 
-    public readonly Tenant = new Tenant("t1", TenantKind.Saas, "Tenant One");
+    public readonly Realm = new Realm("t1", RealmKind.Saas, "Realm One");
 
     private constructor(
         public readonly Idp: FakeOidcIdp,
@@ -93,7 +93,7 @@ class Fixture
 
     public async CompleteLogin(overrides: LoginOverrides = {}): Promise<{ Result: AuthenticationResult; State: string }>
     {
-        const { State } = await this.Auth.BeginAuthorization(this.Tenant);
+        const { State } = await this.Auth.BeginAuthorization(this.Realm);
         const flow = this.Store.Peek(State)!;
         const payload = {
             sub: "u1",
@@ -107,7 +107,7 @@ class Fixture
         const result = await this.Auth.Authenticate(
             new Credential(AuthMethod.Oidc, overrides.state ?? State),
             new PresentedSecret(overrides.code ?? Fixture.DefaultCode),
-            this.Tenant);
+            this.Realm);
         return { Result: result, State };
     }
 
@@ -133,7 +133,7 @@ describe("OidcAuthenticator", () =>
     test("unknown state rejects before any network call", async () =>
     {
         const f = await Fixture.Create();
-        const result = await f.Auth.Authenticate(new Credential(AuthMethod.Oidc, "no-such-state"), new PresentedSecret("x"), f.Tenant);
+        const result = await f.Auth.Authenticate(new Credential(AuthMethod.Oidc, "no-such-state"), new PresentedSecret("x"), f.Realm);
         assert.ok(result instanceof RejectedResult);
         assert.equal(f.Http.PostedFields.length, 0);
     });
@@ -143,7 +143,7 @@ describe("OidcAuthenticator", () =>
         const f = await Fixture.Create();
         const first = await f.CompleteLogin();
         assert.ok(first.Result instanceof AuthenticatedResult);
-        const replay = await f.Auth.Authenticate(new Credential(AuthMethod.Oidc, first.State), new PresentedSecret(Fixture.DefaultCode), f.Tenant);
+        const replay = await f.Auth.Authenticate(new Credential(AuthMethod.Oidc, first.State), new PresentedSecret(Fixture.DefaultCode), f.Realm);
         assert.ok(replay instanceof RejectedResult);
     });
 
@@ -178,12 +178,12 @@ describe("OidcAuthenticator", () =>
     test("alg none rejects", async () =>
     {
         const f = await Fixture.Create();
-        const { State } = await f.Auth.BeginAuthorization(f.Tenant);
+        const { State } = await f.Auth.BeginAuthorization(f.Realm);
         const flow = f.Store.Peek(State)!;
         f.Http.NextTokenResponse = {
             id_token: f.Idp.MintRawUnsigned({ sub: "u1", aud: Fixture.ClientId, iss: f.Idp.Issuer, nonce: flow.Nonce }),
         };
-        const result = await f.Auth.Authenticate(new Credential(AuthMethod.Oidc, State), new PresentedSecret(Fixture.DefaultCode), f.Tenant);
+        const result = await f.Auth.Authenticate(new Credential(AuthMethod.Oidc, State), new PresentedSecret(Fixture.DefaultCode), f.Realm);
         assert.ok(result instanceof RejectedResult);
     });
 
@@ -191,8 +191,8 @@ describe("OidcAuthenticator", () =>
     {
         const f = await Fixture.Create();
         f.Http.FailTokenEndpoint = true;
-        const { State } = await f.Auth.BeginAuthorization(f.Tenant);
-        const result = await f.Auth.Authenticate(new Credential(AuthMethod.Oidc, State), new PresentedSecret(Fixture.DefaultCode), f.Tenant);
+        const { State } = await f.Auth.BeginAuthorization(f.Realm);
+        const result = await f.Auth.Authenticate(new Credential(AuthMethod.Oidc, State), new PresentedSecret(Fixture.DefaultCode), f.Realm);
         assert.ok(result instanceof RejectedResult);
     });
 

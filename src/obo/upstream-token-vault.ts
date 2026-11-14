@@ -20,15 +20,15 @@ export class UpstreamTokenVault
     {
     }
 
-    public async Put(tenantId: string, principalId: string, tokens: UpstreamTokens): Promise<void>
+    public async Put(realmId: string, principalId: string, tokens: UpstreamTokens): Promise<void>
     {
         const body = { [UpstreamTokenVault.AccessField]: tokens.AccessToken, [UpstreamTokenVault.RefreshField]: tokens.RefreshToken };
-        await this.secrets.Put(UpstreamTokenVault.Reference(tenantId, principalId), JSON.stringify(body));
+        await this.secrets.Put(UpstreamTokenVault.Reference(realmId, principalId), JSON.stringify(body));
     }
 
-    public async Get(tenantId: string, principalId: string): Promise<UpstreamTokens | null>
+    public async Get(realmId: string, principalId: string): Promise<UpstreamTokens | null>
     {
-        const raw = await this.secrets.Get(UpstreamTokenVault.Reference(tenantId, principalId));
+        const raw = await this.secrets.Get(UpstreamTokenVault.Reference(realmId, principalId));
         if (raw === null) return null;
         try
         {
@@ -44,13 +44,13 @@ export class UpstreamTokenVault
         }
     }
 
-    public async Delete(tenantId: string, principalId: string): Promise<void>
+    public async Delete(realmId: string, principalId: string): Promise<void>
     {
-        await this.secrets.Delete(UpstreamTokenVault.Reference(tenantId, principalId));
+        await this.secrets.Delete(UpstreamTokenVault.Reference(realmId, principalId));
     }
 
-    private static Reference(tenantId: string, principalId: string): string
+    private static Reference(realmId: string, principalId: string): string
     {
-        return UpstreamTokenVault.ReferencePrefix + tenantId + UpstreamTokenVault.ReferenceSeparator + principalId;
+        return UpstreamTokenVault.ReferencePrefix + realmId + UpstreamTokenVault.ReferenceSeparator + principalId;
     }
 }

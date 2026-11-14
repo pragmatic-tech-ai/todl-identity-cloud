@@ -1,5 +1,5 @@
 import { Grant, ResourceKind, ResourceRef } from "@pragmatic-tech-ai/todl-identity";
-import type { IRoleGrantStore, Principal, Role, Tenant } from "@pragmatic-tech-ai/todl-identity";
+import type { IRoleGrantStore, Principal, Role, Realm } from "@pragmatic-tech-ai/todl-identity";
 
 export class GroupRoleMapper
 {
@@ -7,7 +7,7 @@ export class GroupRoleMapper
     {
     }
 
-    public async ApplyGroups(principal: Principal, tenant: Tenant, groupRoleMap: ReadonlyMap<string, Role>): Promise<void>
+    public async ApplyGroups(principal: Principal, realm: Realm, groupRoleMap: ReadonlyMap<string, Role>): Promise<void>
     {
         for (const group of principal.Groups)
         {
@@ -16,7 +16,7 @@ export class GroupRoleMapper
             {
                 continue;
             }
-            await this.grants.Save(new Grant(principal.Id, role, new ResourceRef(ResourceKind.Tenant, tenant.Id, [])));
+            await this.grants.Save(new Grant(principal.Id, role, new ResourceRef(ResourceKind.Realm, realm.Id, [])));
         }
     }
 }

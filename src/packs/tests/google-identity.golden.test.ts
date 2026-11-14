@@ -63,7 +63,7 @@ class Golden
         return await flow.pack.AuthenticatorFor(AuthMethod.Oidc)!.Authenticate(
             new Credential(AuthMethod.Oidc, flow.State),
             new PresentedSecret(GoogleFixture.AuthCode),
-            flow.tenant);
+            flow.realm);
     }
 }
 

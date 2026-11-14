@@ -10,7 +10,7 @@ import type {
     IRoleGrantStore,
     ISecretStore,
     ISessionManager,
-    Tenant,
+    Realm,
 } from "@pragmatic-tech-ai/todl-identity";
 import type { IHttpClient } from "../http/http-client.js";
 import type { IOidcFlowStateStore } from "../oidc/flow-state-store.js";
@@ -111,9 +111,9 @@ export abstract class OidcIdentityProviderPackBase implements IIdentityProviderP
         return this.Authenticators.find((a) => a.Method === method);
     }
 
-    public BeginAuthorization(tenant: Tenant): Promise<{ Url: string; State: string }>
+    public BeginAuthorization(realm: Realm): Promise<{ Url: string; State: string }>
     {
-        return this.depthAware.BeginAuthorization(tenant);
+        return this.depthAware.BeginAuthorization(realm);
     }
 
     private static ScopesFor(profile: OidcProviderProfile, settings: ReadonlyMap<string, string>): readonly string[]

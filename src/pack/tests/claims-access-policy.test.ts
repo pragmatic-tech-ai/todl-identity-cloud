@@ -8,8 +8,8 @@ import {
     ResourceKind,
     ResourceRef,
     Role,
-    Tenant,
-    TenantKind,
+    Realm,
+    RealmKind,
 } from "@pragmatic-tech-ai/todl-identity";
 import { ClaimsAccessPolicy } from "../claims-access-policy.js";
 
@@ -21,7 +21,7 @@ class Fixture
     public ContextFor(groups: string[]): AccessContext
     {
         const principal = new Principal("p1", "t1", PrincipalKind.User, new Map(), groups);
-        return new AccessContext(principal, new Tenant("t1", TenantKind.Saas, "T1"), [], this.Policy);
+        return new AccessContext(principal, new Realm("t1", RealmKind.Saas, "T1"), [], this.Policy);
     }
 }
 

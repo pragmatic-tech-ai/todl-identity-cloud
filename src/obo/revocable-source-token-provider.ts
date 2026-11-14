@@ -7,6 +7,6 @@ import type { ISourceTokenProvider } from "@pragmatic-tech-ai/todl-identity";
  */
 export interface IRevocableSourceTokenProvider extends ISourceTokenProvider
 {
-    /** Drops every cached entry of `principalId` in `tenantId`; the next request for that user re-fetches. */
-    Forget(tenantId: string, principalId: string): void;
+    /** Drops every cached entry of `principalId` in `realmId`; the next request for that user re-fetches. */
+    Forget(realmId: string, principalId: string): void;
 }

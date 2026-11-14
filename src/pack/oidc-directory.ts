@@ -1,4 +1,4 @@
-import type { IPrincipalDirectory, Principal, Tenant } from "@pragmatic-tech-ai/todl-identity";
+import type { IPrincipalDirectory, Principal, Realm } from "@pragmatic-tech-ai/todl-identity";
 
 export class OidcDirectory implements IPrincipalDirectory
 {
@@ -8,12 +8,12 @@ export class OidcDirectory implements IPrincipalDirectory
 
     public Remember(principal: Principal): void
     {
-        this.principals.set(OidcDirectory.KeyOf(principal.TenantId, principal.Id), principal);
+        this.principals.set(OidcDirectory.KeyOf(principal.RealmId, principal.Id), principal);
     }
 
-    public async Lookup(principalId: string, tenant: Tenant): Promise<Principal | null>
+    public async Lookup(principalId: string, realm: Realm): Promise<Principal | null>
     {
-        return this.principals.get(OidcDirectory.KeyOf(tenant.Id, principalId)) ?? null;
+        return this.principals.get(OidcDirectory.KeyOf(realm.Id, principalId)) ?? null;
     }
 
     public async GroupsOf(principal: Principal): Promise<readonly string[]>
@@ -21,8 +21,8 @@ export class OidcDirectory implements IPrincipalDirectory
         return principal.Groups;
     }
 
-    private static KeyOf(tenantId: string, principalId: string): string
+    private static KeyOf(realmId: string, principalId: string): string
     {
-        return tenantId + OidcDirectory.KeySeparator + principalId;
+        return realmId + OidcDirectory.KeySeparator + principalId;
     }
 }

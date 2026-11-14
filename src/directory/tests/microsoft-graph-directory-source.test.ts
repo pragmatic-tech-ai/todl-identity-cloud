@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { IdpDirectoryRequest, IdpUserState, Tenant, TenantKind } from "@pragmatic-tech-ai/todl-identity";
+import { IdpDirectoryRequest, IdpUserState, Realm, RealmKind } from "@pragmatic-tech-ai/todl-identity";
 import { MapSecretStore } from "../../packs/tests/entra-fixture.js";
 import type { IHttpClient } from "../../http/http-client.js";
 import { HttpStatusError } from "../../http/http-status-error.js";
@@ -64,9 +64,9 @@ class Fixture
         return new MicrosoftGraphDirectorySource(http, secrets, settings);
     }
 
-    public static Tenant(): Tenant
+    public static Realm(): Realm
     {
-        return new Tenant("t1", TenantKind.Saas, "Acme");
+        return new Realm("t1", RealmKind.Saas, "Acme");
     }
 }
 
@@ -79,7 +79,7 @@ class Cases
             const http = new GraphHttp();
             http.PageTwo = [{ id: "bob", accountEnabled: true }, { id: "erin", accountEnabled: false }];
             const source = await Fixture.Source(http);
-            const snapshot = await source.Snapshot(Fixture.Tenant(), new IdpDirectoryRequest(["hr-staff"], ["alice", "dana", "ghost"]));
+            const snapshot = await source.Snapshot(Fixture.Realm(), new IdpDirectoryRequest(["hr-staff"], ["alice", "dana", "ghost"]));
             assert.equal(snapshot.Authoritative, true);
             assert.equal(snapshot.StateOf("erin"), IdpUserState.Disabled);
             assert.equal(snapshot.StateOf("alice"), IdpUserState.Enabled);
@@ -89,13 +89,13 @@ class Cases
             assert.ok(http.Bearers.length >= 5);
             assert.ok(http.Bearers.every((b) => b === GraphHttp.AppToken));
 
-            const mixed = await source.Snapshot(Fixture.Tenant(), new IdpDirectoryRequest([], ["ALICE"]));
+            const mixed = await source.Snapshot(Fixture.Realm(), new IdpDirectoryRequest([], ["ALICE"]));
             assert.equal(mixed.StateOf("ALICE"), IdpUserState.Enabled);
             assert.equal(mixed.StateOf("alice"), IdpUserState.Enabled);
 
             http.FailUsersWith = 500;
             await assert.rejects(
-                source.Snapshot(Fixture.Tenant(), new IdpDirectoryRequest([], ["alice-x"])),
+                source.Snapshot(Fixture.Realm(), new IdpDirectoryRequest([], ["alice-x"])),
                 (e: Error) => !e.message.includes(GraphHttp.AppToken));
         });
 
@@ -105,7 +105,7 @@ class Cases
             http.FailUsersWith = 500;
             const source = await Fixture.Source(http);
             await assert.rejects(
-                source.Snapshot(Fixture.Tenant(), new IdpDirectoryRequest(["hr-staff"], ["alice-x"])),
+                source.Snapshot(Fixture.Realm(), new IdpDirectoryRequest(["hr-staff"], ["alice-x"])),
                 (e: unknown) => e instanceof HttpStatusError && e.Status === 500);
         });
     }
@@ -120,17 +120,17 @@ class StrictCases
             const http = new GraphHttp();
             http.PageTwoStatus = 404;
             const source = await Fixture.Source(http);
-            await assert.rejects(source.Snapshot(Fixture.Tenant(), new IdpDirectoryRequest(["hr-staff"], [])));
+            await assert.rejects(source.Snapshot(Fixture.Realm(), new IdpDirectoryRequest(["hr-staff"], [])));
         });
 
         test("graph source rejects a null user response and an incomplete member entry", async () =>
         {
             const nullUser = new GraphHttp();
             nullUser.UserBody = null;
-            await assert.rejects((await Fixture.Source(nullUser)).Snapshot(Fixture.Tenant(), new IdpDirectoryRequest([], ["alice"])));
+            await assert.rejects((await Fixture.Source(nullUser)).Snapshot(Fixture.Realm(), new IdpDirectoryRequest([], ["alice"])));
             const badMember = new GraphHttp();
             badMember.PageTwo = [{ id: "bob" }];
-            await assert.rejects((await Fixture.Source(badMember)).Snapshot(Fixture.Tenant(), new IdpDirectoryRequest(["hr-staff"], [])));
+            await assert.rejects((await Fixture.Source(badMember)).Snapshot(Fixture.Realm(), new IdpDirectoryRequest(["hr-staff"], [])));
         });
     }
 }

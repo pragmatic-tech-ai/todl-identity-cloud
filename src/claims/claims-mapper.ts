@@ -1,5 +1,5 @@
 import { Principal, PrincipalKind } from "@pragmatic-tech-ai/todl-identity";
-import type { IdentityConfig, Tenant } from "@pragmatic-tech-ai/todl-identity";
+import type { IdentityConfig, Realm } from "@pragmatic-tech-ai/todl-identity";
 import { OidcProviderProfile } from "../pack/oidc-provider-profile.js";
 
 export class ClaimsMapper
@@ -10,7 +10,7 @@ export class ClaimsMapper
     {
     }
 
-    public Map(payload: Record<string, unknown>, tenant: Tenant, config: IdentityConfig): Principal
+    public Map(payload: Record<string, unknown>, realm: Realm, config: IdentityConfig): Principal
     {
         const mapping = new Map<string, string>(this.profile.DefaultClaimsMapping);
         for (const [principalClaim, idpClaim] of config.ClaimsMapping)
@@ -35,6 +35,6 @@ export class ClaimsMapper
         }
 
         const groups = this.profile.GroupStrategy.GroupsFrom(payload);
-        return new Principal(this.profile.NormalizeSubject(sub), tenant.Id, PrincipalKind.User, claims, groups);
+        return new Principal(this.profile.NormalizeSubject(sub), realm.Id, PrincipalKind.User, claims, groups);
     }
 }

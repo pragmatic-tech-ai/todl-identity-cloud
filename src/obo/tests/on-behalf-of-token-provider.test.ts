@@ -36,7 +36,7 @@ class OboHttp implements IHttpClient
 
 class Fixture
 {
-    public static readonly Tenant = "t1";
+    public static readonly Realm = "t1";
     public static readonly Resource = "api://downstream/.default";
     public static readonly ApiScope = "api://app/access";
     public static readonly SecretRef = "obo-secret-ref";
@@ -81,7 +81,7 @@ class Fixture
 
     public static Request(principal: string): SourceTokenRequest
     {
-        return new SourceTokenRequest(Fixture.Tenant, principal, Fixture.Resource);
+        return new SourceTokenRequest(Fixture.Realm, principal, Fixture.Resource);
     }
 
     private Mint(fields: ReadonlyMap<string, string>): unknown
@@ -102,7 +102,7 @@ class Cases
         {
             const f = await Fixture.Create();
             const assertion = Fixture.Unsigned({ exp: 4_100_000_000, who: "alice" });
-            await f.Vault.Put(Fixture.Tenant, "alice", new UpstreamTokens(assertion, "rt"));
+            await f.Vault.Put(Fixture.Realm, "alice", new UpstreamTokens(assertion, "rt"));
             const token = await f.Provider.Acquire(Fixture.Request("alice"));
             assert.equal(f.Http.Posts.length, 1);
             const post = f.Http.Posts[0];
@@ -121,14 +121,14 @@ class Cases
             const now = new Date();
             const f = await Fixture.Create(now);
             const expired = Fixture.Unsigned({ exp: Math.floor(now.getTime() / 1000) - 10 });
-            await f.Vault.Put(Fixture.Tenant, "alice", new UpstreamTokens(expired, "rt-1"));
+            await f.Vault.Put(Fixture.Realm, "alice", new UpstreamTokens(expired, "rt-1"));
             await f.Provider.Acquire(Fixture.Request("alice"));
             assert.equal(f.Http.Posts.length, 2);
             assert.equal(f.Http.Posts[0].get("grant_type"), "refresh_token");
             assert.equal(f.Http.Posts[0].get("refresh_token"), "rt-1");
             assert.equal(f.Http.Posts[0].get("scope"), Fixture.ApiScope);
             assert.equal(f.Http.Posts[1].get("grant_type"), "urn:ietf:params:oauth:grant-type:jwt-bearer");
-            const stored = await f.Vault.Get(Fixture.Tenant, "alice");
+            const stored = await f.Vault.Get(Fixture.Realm, "alice");
             assert.equal(f.Http.Posts[1].get("assertion"), stored?.AccessToken);
             assert.equal(stored?.RefreshToken, "rt-2");
         });
@@ -150,7 +150,7 @@ class Cases
             const now = new Date();
             const f = await Fixture.Create(now);
             const expired = Fixture.Unsigned({ exp: Math.floor(now.getTime() / 1000) - 10 });
-            await f.Vault.Put(Fixture.Tenant, "alice", new UpstreamTokens(expired, null));
+            await f.Vault.Put(Fixture.Realm, "alice", new UpstreamTokens(expired, null));
             await assert.rejects(
                 f.Provider.Acquire(Fixture.Request("alice")),
                 (e: unknown) => e instanceof SourceTokenError && e.Failure === SourceTokenFailure.NoUpstreamSession);
@@ -162,8 +162,8 @@ class Cases
             const f = await Fixture.Create();
             const aliceAssertion = Fixture.Unsigned({ exp: 4_100_000_000, who: "alice" });
             const bobAssertion = Fixture.Unsigned({ exp: 4_100_000_000, who: "bob" });
-            await f.Vault.Put(Fixture.Tenant, "alice", new UpstreamTokens(aliceAssertion, null));
-            await f.Vault.Put(Fixture.Tenant, "bob", new UpstreamTokens(bobAssertion, null));
+            await f.Vault.Put(Fixture.Realm, "alice", new UpstreamTokens(aliceAssertion, null));
+            await f.Vault.Put(Fixture.Realm, "bob", new UpstreamTokens(bobAssertion, null));
             const alice = await f.Provider.Acquire(Fixture.Request("alice"));
             const bob = await f.Provider.Acquire(Fixture.Request("bob"));
             assert.notEqual(alice.Value.Reveal(), bob.Value.Reveal());
@@ -179,13 +179,13 @@ class Cases
             const f = await Fixture.Create();
             const aliceAssertion = Fixture.Unsigned({ exp: 4_100_000_000, who: "alice" });
             const bobAssertion = Fixture.Unsigned({ exp: 4_100_000_000, who: "bob" });
-            await f.Vault.Put(Fixture.Tenant, "alice", new UpstreamTokens(aliceAssertion, null));
-            await f.Vault.Put(Fixture.Tenant, "bob", new UpstreamTokens(bobAssertion, null));
+            await f.Vault.Put(Fixture.Realm, "alice", new UpstreamTokens(aliceAssertion, null));
+            await f.Vault.Put(Fixture.Realm, "bob", new UpstreamTokens(bobAssertion, null));
             await f.Provider.Acquire(Fixture.Request("alice"));
             await f.Provider.Acquire(Fixture.Request("bob"));
             assert.equal(f.Http.Posts.length, 2);
 
-            f.Provider.Forget(Fixture.Tenant, "alice");
+            f.Provider.Forget(Fixture.Realm, "alice");
             assert.equal(f.Cache.Get(Fixture.Request("alice"), new Date()), undefined);
             assert.ok(f.Cache.Get(Fixture.Request("bob"), new Date()));
 

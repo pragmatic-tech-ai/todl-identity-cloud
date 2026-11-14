@@ -9,7 +9,7 @@ import type {
     IdentityConfig,
     ISecretStore,
     PresentedSecret,
-    Tenant,
+    Realm,
 } from "@pragmatic-tech-ai/todl-identity";
 import type { IHttpClient } from "../http/http-client.js";
 import type { OidcDiscovery } from "./oidc-discovery.js";
@@ -66,7 +66,7 @@ export class OidcAuthenticator implements IAuthenticator
         this.now = opts.now ?? (() => new Date());
     }
 
-    public async BeginAuthorization(_tenant: Tenant): Promise<{ Url: string; State: string }>
+    public async BeginAuthorization(_realm: Realm): Promise<{ Url: string; State: string }>
     {
         const resolved = this.opts.Resolved;
         const endpoints = await this.opts.Discovery.Endpoints(resolved.DiscoveryUrl);
@@ -87,7 +87,7 @@ export class OidcAuthenticator implements IAuthenticator
         return { Url: url, State: state };
     }
 
-    public async Authenticate(credential: Credential, presented: PresentedSecret, tenant: Tenant): Promise<AuthenticationResult>
+    public async Authenticate(credential: Credential, presented: PresentedSecret, realm: Realm): Promise<AuthenticationResult>
     {
         try
         {
@@ -147,8 +147,8 @@ export class OidcAuthenticator implements IAuthenticator
                 return this.Reject();
             }
 
-            const principal = this.opts.Claims.Map(payload as Record<string, unknown>, tenant, this.opts.Config);
-            await this.StoreUpstream(tenant, principal.Id, tokenResponse);
+            const principal = this.opts.Claims.Map(payload as Record<string, unknown>, realm, this.opts.Config);
+            await this.StoreUpstream(realm, principal.Id, tokenResponse);
             return new AuthenticatedResult(principal);
         }
         catch
@@ -157,7 +157,7 @@ export class OidcAuthenticator implements IAuthenticator
         }
     }
 
-    private async StoreUpstream(tenant: Tenant, principalId: string, tokenResponse: unknown): Promise<void>
+    private async StoreUpstream(realm: Realm, principalId: string, tokenResponse: unknown): Promise<void>
     {
         const vault = this.opts.Vault;
         if (vault === undefined) return;
@@ -165,7 +165,7 @@ export class OidcAuthenticator implements IAuthenticator
         const access = body[OidcAuthenticator.AccessTokenField];
         if (typeof access !== "string") return;
         const refresh = body[OidcAuthenticator.RefreshTokenField];
-        await vault.Put(tenant.Id, principalId, new UpstreamTokens(access, typeof refresh === "string" ? refresh : null));
+        await vault.Put(realm.Id, principalId, new UpstreamTokens(access, typeof refresh === "string" ? refresh : null));
     }
 
     private IsNoMatchingKey(e: unknown): boolean
