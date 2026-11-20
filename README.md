@@ -1,3 +1,7 @@
+> Archived 2026-11-20: moved to pragmatic-shared, split per identity source: packages/pragmatic-identity-source-oidc, packages/pragmatic-identity-source-entra and packages/pragmatic-identity-source-google, published as @pragmatic-tech-ai/pragmatic-identity-source-oidc, @pragmatic-tech-ai/pragmatic-identity-source-entra and @pragmatic-tech-ai/pragmatic-identity-source-google.
+>
+> The package @pragmatic-tech-ai/todl-identity-cloud is retired. GitHub Packages does not support npm deprecate, so its published versions carry no deprecation flag; use the new package.
+
 # todl-identity-cloud
 
 Cloud identity provider packs (Microsoft Entra, Google, generic OIDC) for the identity framework.
